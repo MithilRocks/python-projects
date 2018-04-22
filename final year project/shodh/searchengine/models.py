@@ -12,7 +12,7 @@ class link(models.Model):
 	         #Foreign key that adds 'url_list' model in this model so as to access the urls. 
                                                         #Is stored as the column name 'url_list_id' in the database.  
 	from_id=models.IntegerField()                   #Id of parent url of which it is a child
-        to_id=models.IntegerField()                     #Id of child url of this url
+	to_id=models.IntegerField()#Id of child url of this url
 	
 
 class word_list(models.Model):

@@ -1,10 +1,10 @@
-from django.conf.urls import patterns, include, url
+from django.conf.urls import include, url
 from django.conf import settings
 # Uncomment the next two lines to enable the admin:
 from django.contrib import admin
 admin.autodiscover()
 
-urlpatterns = patterns('',
+urlpatterns = [
     # Examples:
     # url(r'^$', 'shodh.views.home', name='home'),
     # url(r'^shodh/', include('shodh.foo.urls')),
@@ -20,4 +20,4 @@ urlpatterns = patterns('',
 	url(r'^display/(?P<id>\d)/$','searchengine.views.display',name='disp'),
 	url(r'^autosuggest/', 'searchengine.views.autosuggest', name='auto_suggest'),
 	(r'^media/(?P<path>.*)$', 'django.views.static.serve',{'document_root': settings.MEDIA_ROOT}),
-)
+]
