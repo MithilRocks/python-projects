@@ -1,8 +1,7 @@
-#%%
-import matplotlib.pyplot as plt
-import matplotlib as mpl
-import numpy as np
+# this is the main py file. import other files to use their functionalities
+from sort_list import Sort
 
-x = np.linspace(0, 20, 100)
-plt.plot(x, np.sin(x))
-plt.show()
+a = Sort([2,9,1,45,23,12,89,34,9,99,1000,978,99,67,23,45])
+
+print(a.bubble_sort())
+
