@@ -1,0 +1,12 @@
+<p>You searched for: <strong>{{ query }}</strong></p>
+
+{% if urls %}
+    <p>Found {{ urls|length }} url{{ urls|pluralize }}.</p>
+    <ul>
+        {% for url in urls %}
+        <li>{{ url.url_name }}</li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <p>No books matched your search criteria.</p>
+{% endif %}

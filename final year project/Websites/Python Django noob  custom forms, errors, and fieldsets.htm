@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html dir="ltr" lang="en-US"><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<meta charset="UTF-8">
+<title>Python Django noob: custom forms, errors, and fieldsets</title>
+<meta name="description" content="I recently decided to take a break from my own, somewhat-custom, python, web framework to play around with Django. I’ve been doing some contracting work, a">
+<meta name="robots" content="noodp, noydir">
+<link rel="stylesheet" type="text/css" href="Python%20Django%20noob%20%20custom%20forms,%20errors,%20and%20fieldsets_files/css.css" media="screen, projection">
+<link rel="canonical" href="http://mikepk.com/2010/08/python-django-forms-errors-fieldsets/">
+<link href="Python%20Django%20noob%20%20custom%20forms,%20errors,%20and%20fieldsets_files/css_002.css" rel="stylesheet" type="text/css">
+<link rel="alternate" type="application/rss+xml" title="mikepk feed" href="http://mikepk.com/feed/">
+<link rel="pingback" href="http://mikepk.com/xmlrpc.php">
+<link rel="alternate" type="application/rss+xml" title="mikepk » Python Django noob: custom forms, errors, and fieldsets Comments Feed" href="http://mikepk.com/2010/08/python-django-forms-errors-fieldsets/feed/">
+<link rel="stylesheet" id="wp-syntax-css-css" href="Python%20Django%20noob%20%20custom%20forms,%20errors,%20and%20fieldsets_files/wp-syntax.css" type="text/css" media="all">
+<script src="Python%20Django%20noob%20%20custom%20forms,%20errors,%20and%20fieldsets_files/a_002.htm" async=""></script><script src="Python%20Django%20noob%20%20custom%20forms,%20errors,%20and%20fieldsets_files/ga.js" async="" type="text/javascript"></script><script type="text/javascript" src="Python%20Django%20noob%20%20custom%20forms,%20errors,%20and%20fieldsets_files/comment-reply.js"></script>
+	<style type="text/css">.recentcomments a{display:inline !important;padding:0 !important;margin:0 !important;}</style>
+<link rel="shortcut icon" href="http://mikepk.com/wp-content/themes/thesis/lib/images/favicon.ico">
+<script src="Python%20Django%20noob%20%20custom%20forms,%20errors,%20and%20fieldsets_files/embed.js" async="" type="text/javascript"></script></head>
+<body class="template-single">
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-9638409-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+<div id="container">
+	<ul id="menu-main" class="menu"><li id="menu-item-918" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-918"><a href="http://mikepk.com/">Home</a></li>
+<li id="menu-item-914" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-914"><a href="http://mikepk.com/about/">About</a></li>
+<li id="menu-item-913" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-913"><a href="http://mikepk.com/current-projects/">Projects</a></li>
+<li id="menu-item-912" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-912"><a href="http://mikepk.com/contact/">Contact</a></li>
+</ul>
+	<div class="columns">
+		<div class="content">
+			<div id="post-808" class="post_box top">
+				<div class="headline_area small">
+					<h1 class="headline">Python Django noob: custom forms, errors, and fieldsets</h1>
+					<p class="byline">
+						<span class="post_author_intro">by</span> <span class="post_author">mikepk</span>
+						<span class="post_date_intro">on</span> <span class="post_date" title="2010-08-07">August 7, 2010</span>
+					</p>
+				</div>
+				<div class="post_content">
+<p>I recently decided to take a break from my own, somewhat-custom, python, web framework to play around with <a href="http://www.djangoproject.com/">Django</a>.
+ I’ve been doing some contracting work, and the most popular web 
+framework for Python seems to be Django. I decided that it would be 
+worth my time to actually build something real using it (other than just
+ a tutorial) to get some deeper familiarity with it (and maybe to lift 
+ideas for pybald).</p>
+<p>There are a lot of things to like about Django, I’m saving those up 
+for another post. This post is about how I just burned several hours 
+trying to do a few things that seemed like they should be simple but 
+turned out to be oddly frustrating. Im sure that part of this is just 
+not being Django-expert-enough to have seen the obvious answers but the 
+task at hand seemed simple enough: creating a user registration form for
+ my application. (Yes I know there’s a user registration django app, but
+ this seemed like a trivial task that should be easy with a good 
+framework)</p>
+<h3>Custom Forms and Error Display</h3>
+<p><img src="Python%20Django%20noob%20%20custom%20forms,%20errors,%20and%20fieldsets_files/django_form.png" alt="django_form.png" title="django_form.png" style="border: 1px solid #CCC; float:right; margin-left: 1em; margin-bottom: 0.5em" height="226" border="0" width="236">I
+ started down the rabbit hole when I decided I didn’t really like the 
+default way Django renders forms. There are a couple of options (<code>as_table</code>, <code>as_p</code>, <code>as_ul</code>),
+ but whether displaying as a table, a list, or as &lt;p&gt; tags, the 
+form layout didn’t match what I was used to. I know tables are often 
+used for layout, but I really try and keep them for tabular data 
+whenever possible. I also generally like to reserve &lt;p&gt; tags for 
+actual text/content paragraphs and prefer &lt;div&gt; tags for logical 
+divisions in a document. Might be nit-picky, but that seems more 
+semantic to me.</p>
+<p> <img src="Python%20Django%20noob%20%20custom%20forms,%20errors,%20and%20fieldsets_files/Django_form_errors.png" alt="Django_form_errors.png" title="Django_form_errors.png" style="border: 1px solid #CCC; float:right; margin-left: 1em; margin-bottom: 0.5em" height="282" border="0" width="234">
+ I could have lived with one of the default renderings but I found that I
+ also wasn’t crazy about the way Django handles validation error display
+ by default. Normally Django spits out a <code>&lt;ul&gt;</code> list of
+ field errors with a css class of “errorlist” right above the offending 
+field (or at the top of the form for general errors). Since the errors 
+are only tied to the field by proximity, there’s no way to call out the 
+offending field directly. With some styling, I could have made the error
+ list clearer, but I still wasn’t crazy about this pattern.</p>
+<p>When designing forms, I like to provide a small amount of usability 
+by highlighting the error field in some way with an error style. At 
+first I could find no way to do this with the default form rendering. 
+Later I figured out that you can modify the widget tied to the field, 
+but that seemed like putting too much display logic in the controller. 
+It also seemed to require a lot of code repetition, putting this piece 
+of code anywhere a form was instantiated and validated. I thought about 
+creating a custom subclass of the form but that seemed heavy handed and I
+ definitely didn’t want to alter Django internals. It also required 
+playing with the <em>two</em> different kinds of field objects that come out of a form (more on that later).</p>
+<div>
+
+<div class="wp_syntax"><table><tbody><tr><td class="code"><pre class="python" style="font-family:monospace;"><span style="color: #ff7700;font-weight:bold;">for</span> field <span style="color: #ff7700;font-weight:bold;">in</span> form:
+     <span style="color: #ff7700;font-weight:bold;">if</span> field.<span style="color: black;">errors</span>:
+        f.<span style="color: black;">fields</span><span style="color: black;">[</span>field.<span style="color: black;">name</span><span style="color: black;">]</span>.<span style="color: black;">widget</span>.<span style="color: black;">attrs</span><span style="color: black;">[</span><span style="color: #483d8b;">'class'</span><span style="color: black;">]</span> <span style="color: #66cc66;">=</span> <span style="color: #483d8b;">"field_error"</span></pre></td></tr></tbody></table></div>
+
+<div style="margin-top:0; margin-bottom: 1em; text-align:center; font-size:.75em">Adding
+ error css to the widgets tied to fields. Not very DRY and not very 
+clean in the controller / view (or template) separation</div>
+</div>
+<p>I wanted to keep this logic in the template which meant I needed to define my own form rendering. Easy enough, I just <a href="http://docs.djangoproject.com/en/dev/topics/forms/#customizing-the-form-template">wrote my own generic form using the Django template language</a>. I generally put input fields inside <code>&lt;div&gt;</code> tags. I also add a <code>field_error</code>
+ css class to the divs that contain inputs with errors. That lets me 
+define both special styles to highlight that section of the form and the
+ offending fields directly ( with css like: <code>.field_error input {} </code>), as well as use the error class as a key for special effects (like jQuery fades, etc…). </p>
+<p>My initial custom form looked like this:</p>
+
+<div class="wp_syntax"><table><tbody><tr><td class="code"><pre class="none" style="font-family:monospace;">{# Include the hidden fields in the form #}
+{% if form.non_field_errors %}
+&lt;div class="form_errors"&gt;
+  {% for err in form.non_field_errors %}
+  &lt;div class="form_error_message"&gt;{{ err }}&lt;/div&gt;
+  {% endfor %}
+&lt;/div&gt;	
+{% endif %}
+{% for hidden in form.hidden_fields %}
+   {{ hidden }}
+{% endfor %}
+{% for field in form.visible_fields %}
+  &lt;div {% if field.errors %}class="field_error"{% endif %}&gt;
+    {{ field.label_tag }}
+    {{ field }}
+    {% for err in field.errors %}
+    &lt;span class="error_message"&gt;{{ err }}&lt;/span&gt;
+    {% endfor %}
+  &lt;/div&gt;
+{% endfor %}</pre></td></tr></tbody></table></div>
+
+<p>Now from the Django documentation, they <a href="http://docs.djangoproject.com/en/dev/howto/custom-template-tags/#howto-custom-template-tags-inclusion-tags">suggest creating a custom inclusion tag to render forms like this</a>,
+ but I held off on that for now (although it looks fairly easy). Since 
+I’m generally producing one form per page (at the moment) I’m just using
+ the Django include tag and including this form template into my page 
+template where I need a form. So instead of <code>{{ form.as_ul }}</code> I’m using this: <code>{% include base_form.html %}</code>  and assuming I’m using a context variable of <code>form</code> in the outer template (or using ‘<code>with</code>‘ to override form in the include as described in the docs).</p>
+<p>Getting my own error displays working, with field highlighting I was 
+happy with, was fairly easy. Right now validation errors appear as a 
+series of spans next to the input field, but I’ll probably change this 
+later.</p>
+<div style="text-align:center"><img src="Python%20Django%20noob%20%20custom%20forms,%20errors,%20and%20fieldsets_files/Screen-shot-2010-08-06-at-5.png" alt="Screen shot 2010-08-06 at 5.44.51 PM.png" title="Screen shot 2010-08-06 at 5.44.51 PM.png" height="240" border="0" width="373"><p></p>
+<div style="margin-top:0; margin-bottom: 1em; text-align:center; font-size:.75em">Error css applied in the display logic. A simple yellow bg color styles allow me to highlight the error and the field.</div>
+</div>
+<h3>Custom Form Validation</h3>
+<p>Next I started working with validation.  Since this is for a custom 
+user registration form, the first thing I need to do is validate that 
+the username being registered is unique. Django has the concept of 
+validation functions that can be passed to form fields. For my own web 
+framework I’ve been using <a href="http://docs.formalchemy.org/">FormAlchemy</a>, to provide a validation system and Django’s system is similar in some respects.</p>
+
+<div class="wp_syntax"><table><tbody><tr><td class="code"><pre class="python" style="font-family:monospace;"><span style="color: #ff7700;font-weight:bold;">def</span> validate_username_unique<span style="color: black;">(</span>value<span style="color: black;">)</span>:
+    <span style="color: #483d8b;">'''Custom validator for user uniqueness.'''</span>
+    <span style="color: #ff7700;font-weight:bold;">if</span> User.<span style="color: black;">objects</span>.<span style="color: #008000;">filter</span><span style="color: black;">(</span>username<span style="color: #66cc66;">=</span>value<span style="color: black;">)</span>.<span style="color: black;">exists</span><span style="color: black;">(</span><span style="color: black;">)</span>:
+        <span style="color: #ff7700;font-weight:bold;">raise</span> ValidationError<span style="color: black;">(</span>u<span style="color: #483d8b;">'Sorry, someone already has that [...]'</span><span style="color: black;">)</span>
+&nbsp;
+<span style="color: #ff7700;font-weight:bold;">class</span> UserRegisterForm<span style="color: black;">(</span>forms.<span style="color: black;">Form</span><span style="color: black;">)</span>:
+    <span style="color: #808080; font-style: italic;"># [... stuff ...]</span>
+    username <span style="color: #66cc66;">=</span> forms.<span style="color: black;">CharField</span><span style="color: black;">(</span>validators<span style="color: #66cc66;">=</span><span style="color: black;">[</span>validate_username_unique<span style="color: black;">]</span><span style="color: black;">)</span>
+    <span style="color: #808080; font-style: italic;"># [... stuff ...]</span></pre></td></tr></tbody></table></div>
+
+<p>Nice and clean, this is how I expect form validation to work.</p>
+<p>Next I needed to confirm that the password and password confirm 
+fields match. Validators only take one value input, so how do I validate
+ that the fields match? Turns out Django’s validators aren’t up to the 
+task so you have to <a href="http://docs.djangoproject.com/en/dev/ref/forms/validation/#cleaning-and-validating-fields-that-depend-on-each-other">plumb a little deeper into how it validates forms</a>
+ (as a note, Django’s docs are very good, but often times the difficulty
+ is figuring out where in the docs something may or may not live).</p>
+<p>To validate based on two fields you have to override the <code>clean</code> method on your subclassed form. When you want to flag validation errors on a particular field, you set the <code>_errors['FIELDNAME']</code> on the form to flag the invalid fields. (remember that the <code>clean</code> method must return the cleaned_data member. That bit me in the rear for a while.)</p>
+<div>
+
+<div class="wp_syntax"><table><tbody><tr><td class="code"><pre class="python" style="font-family:monospace;"><span style="color: #ff7700;font-weight:bold;">class</span> UserRegisterForm<span style="color: black;">(</span>forms.<span style="color: black;">Form</span><span style="color: black;">)</span>:
+    <span style="color: #808080; font-style: italic;"># [...stuff...]</span>
+    password <span style="color: #66cc66;">=</span> forms.<span style="color: black;">CharField</span><span style="color: black;">(</span>widget<span style="color: #66cc66;">=</span>forms.<span style="color: black;">PasswordInput</span><span style="color: black;">)</span>
+    password_confirm <span style="color: #66cc66;">=</span> forms.<span style="color: black;">CharField</span><span style="color: black;">(</span>widget<span style="color: #66cc66;">=</span>forms.<span style="color: black;">PasswordInput</span><span style="color: black;">)</span>
+&nbsp;
+    <span style="color: #ff7700;font-weight:bold;">def</span> clean<span style="color: black;">(</span><span style="color: #008000;">self</span><span style="color: black;">)</span>:
+        <span style="color: #483d8b;">'''Required custom validation for the form.'''</span>
+        <span style="color: #008000;">super</span><span style="color: black;">(</span>forms.<span style="color: black;">Form</span><span style="color: #66cc66;">,</span><span style="color: #008000;">self</span><span style="color: black;">)</span>.<span style="color: black;">clean</span><span style="color: black;">(</span><span style="color: black;">)</span>
+        <span style="color: #ff7700;font-weight:bold;">if</span> <span style="color: #483d8b;">'password'</span> <span style="color: #ff7700;font-weight:bold;">in</span> <span style="color: #008000;">self</span>.<span style="color: black;">cleaned_data</span> <span style="color: #ff7700;font-weight:bold;">and</span> <span style="color: #483d8b;">'password_confirm'</span> <span style="color: #ff7700;font-weight:bold;">in</span> <span style="color: #008000;">self</span>.<span style="color: black;">cleaned_data</span>:
+            <span style="color: #ff7700;font-weight:bold;">if</span> <span style="color: #008000;">self</span>.<span style="color: black;">cleaned_data</span><span style="color: black;">[</span><span style="color: #483d8b;">'password'</span><span style="color: black;">]</span> <span style="color: #66cc66;">!=</span> <span style="color: #008000;">self</span>.<span style="color: black;">cleaned_data</span><span style="color: black;">[</span><span style="color: #483d8b;">'password_confirm'</span><span style="color: black;">]</span>:
+                <span style="color: #008000;">self</span>._errors<span style="color: black;">[</span><span style="color: #483d8b;">'password'</span><span style="color: black;">]</span> <span style="color: #66cc66;">=</span> <span style="color: black;">[</span>u<span style="color: #483d8b;">'Passwords must match.'</span><span style="color: black;">]</span>
+                <span style="color: #008000;">self</span>._errors<span style="color: black;">[</span><span style="color: #483d8b;">'password_confirm'</span><span style="color: black;">]</span> <span style="color: #66cc66;">=</span> <span style="color: black;">[</span>u<span style="color: #483d8b;">'Passwords must match.'</span><span style="color: black;">]</span>
+        <span style="color: #ff7700;font-weight:bold;">return</span> <span style="color: #008000;">self</span>.<span style="color: black;">cleaned_data</span></pre></td></tr></tbody></table></div>
+
+<div style="margin-top:0; margin-bottom: 1em; text-align:center; font-size:.75em">validation of two dependent fields: the magic ‘clean’ method and the _error attribute</div>
+</div>
+<p>So now I have a form that checks that two fields are equal or else it
+ flags a validation error. I had to add validation logic using two 
+different mechanisms which seems a little messy but not too bad.</p>
+<div style="text-align:center">
+<img src="Python%20Django%20noob%20%20custom%20forms,%20errors,%20and%20fieldsets_files/password_valid.png" alt="password_valid.png" title="password_valid.png" height="174" border="0" width="292"><p></p>
+<div style="margin-top:0; margin-bottom: 1em; text-align:center; font-size:.75em">Passwords must match!</div>
+</div>
+<h3>Fieldsets</h3>
+<p>Lastly I decided I wanted to split my form inputs into fieldsets. 
+Generally this is considered good practice, especially for usability and
+ accesibility. The first option would be to just write out the form by 
+hand, including the fieldsets, but that seemed like it could be brittle 
+and not very django-like. Django also has <a href="http://docs.djangoproject.com/en/dev/ref/contrib/admin/#django.contrib.admin.ModelAdmin.fieldsets">some nice fieldset functionality for it’s admin app</a>, so I assumed this would be trivially easy. Google searches seemed to turn up <a href="http://stackoverflow.com/questions/518966/django-and-fieldsets-on-modelform">overly complex solutions</a>
+ for something that seems like it should be ‘built in’. There’s also a 
+library ‘django form-utils’ that has fieldsets but I was trying to stick
+ with generic Django forms.</p>
+<div style="float:right; width: 17em; margin-left: 2em;  margin-bottom: 1em; background: #FFe; padding: 1em; border: 1px solid #FFA">This also highlights another issue I have, the way <a href="http://docs.djangoproject.com/en/dev/faq/general/#django-appears-to-be-a-mvc-framework-but-you-call-the-controller-the-view-and-the-view-the-template-how-come-you-don-t-use-the-standard-names">django defines ‘views’ and MVC</a>.
+ Much of the logic that in my definition of MVC would live in a 
+controller, is delegated to something called a view in django. This view
+ has a slight muddle of display logic and model manipulation. The 
+template isn’t considered the view, but rather it’s own entitity, a 
+presentation layer. It seems a little weird to me but I’m getting used 
+to it. </div>
+<p>This is where my frustration level really started to rise. I became 
+very annoyed at the philosophical position that Django has taken that 
+Django templates <em>can’t run arbitrary python code</em>. There are arguments for why this is/isn’t a good idea in a template system, but having come from using <a href="http://www.makotemplates.org/">Mako</a> for my templating system, this limitation started to drive me a little crazy.</p>
+<p>My first impulse was to create a one-off custom form and use display logic in the template to change how things were laid out.</p>
+
+<div class="wp_syntax"><table><tbody><tr><td class="code"><pre class="none" style="font-family:monospace;">&lt;fieldset&gt;&lt;legend&gt;Name&lt;/legend&gt;
+{% for fieldname in ('prefix','first_name','last_name') %}
+{# render the fields for this fieldset #}
+{% endfor %}
+&lt;/fieldset&gt;</pre></td></tr></tbody></table></div>
+
+<p>Bzzzt.</p>
+<pre land="none">TemplateSyntaxError at /register/user
+Could not parse the remainder: '('prefix','first_name','last_name')' from 
+'('prefix','first_name','last_name')'
+</pre>
+<p> Django doesn’t allow you to create tuples or lists inside <code>for</code>
+ blocks. The for tag only seems to work on iterators passed into the 
+context. This seemed a little annoying to me since this logic seems 
+ideally suited as <em>display logic</em> but it was forcing me to move 
+the logic into the controller logic. I monkeyed with all sorts of ways 
+to try and modify the display logic to no avail.</p>
+<p>Then I decided to create an iterator that I could pass into the context so I could call out the individual field names.</p>
+
+<div class="wp_syntax"><table><tbody><tr><td class="code"><pre class="python" style="font-family:monospace;">    fieldset <span style="color: #66cc66;">=</span> <span style="color: black;">(</span><span style="color: black;">{</span><span style="color: #483d8b;">'label'</span>:<span style="color: #483d8b;">'Name'</span><span style="color: #66cc66;">,</span><span style="color: #483d8b;">'fields'</span>:<span style="color: black;">(</span><span style="color: #483d8b;">'prefix'</span><span style="color: #66cc66;">,</span><span style="color: #483d8b;">'first_name'</span><span style="color: #66cc66;">,</span><span style="color: #483d8b;">'last_name'</span><span style="color: black;">)</span><span style="color: black;">}</span><span style="color: #66cc66;">,</span><span style="color: black;">)</span>
+    <span style="color: #ff7700;font-weight:bold;">return</span> render_to_response<span style="color: black;">(</span><span style="color: #483d8b;">'registration/user_register.html'</span><span style="color: #66cc66;">,</span>
+                             <span style="color: black;">{</span><span style="color: #483d8b;">'form'</span>: f<span style="color: #66cc66;">,</span><span style="color: #483d8b;">'fieldset'</span>:fieldset<span style="color: black;">}</span><span style="color: #66cc66;">,</span> 
+                             context_instance<span style="color: #66cc66;">=</span>RequestContext<span style="color: black;">(</span>request<span style="color: black;">)</span><span style="color: black;">)</span></pre></td></tr></tbody></table></div>
+
+<p>Then in the template I tried using the names on the fields dictionary.</p>
+
+<div class="wp_syntax"><table><tbody><tr><td class="code"><pre class="none" style="font-family:monospace;">{% for set in fieldset %}
+&lt;fieldset&gt;&lt;legend&gt;{{ set.legend }}&lt;/legend&gt;
+{% for fieldname in set.fields %}
+{{ form.fields[fieldname] }}
+{% endfor %}
+{% endfor %}
+&lt;/fieldset&gt;</pre></td></tr></tbody></table></div>
+
+<p>Nope: <em><strong>TemplateSyntaxError</strong></em>. Again, the 
+Django template language doesn’t like you accessing dictionary values by
+ name in a variable block. Attributes seem OK, key values no. I’m not 
+sure I like this “echoes of python” approach in the template language 
+because it means learning another logic system rather than applying the 
+full expressiveness of Python. </p>
+<p>So, no dictionaries, I’ll pass the fields themselves in the fieldset as iterable objects.</p>
+
+<div class="wp_syntax"><table><tbody><tr><td class="code"><pre class="python" style="font-family:monospace;">fieldset <span style="color: #66cc66;">=</span> <span style="color: black;">(</span><span style="color: black;">{</span><span style="color: #483d8b;">'legend'</span>:<span style="color: #483d8b;">'Name'</span><span style="color: #66cc66;">,</span>
+             <span style="color: #483d8b;">'fields'</span>:<span style="color: black;">(</span>f.<span style="color: black;">fields</span><span style="color: black;">[</span><span style="color: #483d8b;">'prefix'</span><span style="color: black;">]</span><span style="color: #66cc66;">,</span>
+                       f.<span style="color: black;">fields</span><span style="color: black;">[</span><span style="color: #483d8b;">'first_name'</span><span style="color: black;">]</span><span style="color: #66cc66;">,</span>
+                       f.<span style="color: black;">fields</span><span style="color: black;">[</span><span style="color: #483d8b;">'last_name'</span><span style="color: black;">]</span><span style="color: black;">)</span><span style="color: black;">}</span><span style="color: #66cc66;">,</span><span style="color: black;">)</span></pre></td></tr></tbody></table></div>
+
+
+<div class="wp_syntax"><table><tbody><tr><td class="code"><pre class="none" style="font-family:monospace;">{% for set in fieldset %}
+&lt;fieldset&gt;&lt;legend&gt;{{ set.legend }}&lt;/legend&gt;
+{% for field in set.fields %}
+&lt;div&gt;
+{{ field }}
+&lt;/div&gt;
+{% endfor %}
+{% endfor %}
+&lt;/fieldset&gt;</pre></td></tr></tbody></table></div>
+
+<p>Alright, no TemplateSyntaxErrors, but wait, what the…</p>
+<p><img src="Python%20Django%20noob%20%20custom%20forms,%20errors,%20and%20fieldsets_files/Screen-shot-2010-08-07-at-11.png" alt="Screen shot 2010-08-07 at 11.21.23 AM.png" title="Screen shot 2010-08-07 at 11.21.23 AM.png" height="147" border="0" width="508"></p>
+<p>It took a little experimentation and some object introspection but 
+the issue here is that the form actually contains two representations of
+ fields, bound and unbound. The code: <code>for field in form.fields</code> returns different objects than: <code>for field in form</code>. </p>
+<p>Poking around the Django core I found that the iterator for a form instantiates <code>BoundField</code> objects from it’s internal fields and returns <em>those</em>. That’s what gets rendered as HTML. The <a href="http://docs.djangoproject.com/en/dev/topics/forms/#looping-over-the-form-s-fields">docs do talk a bit about this distinction</a>, but it’s mostly in passing and mentioning you have some additional methods on BoundFields.</p>
+<p>Ok, so knowing I need to pass in an iterator, and that the iterator must return <code>BoundFields</code> to properly render in the template, I came up with this FieldSet class.</p>
+
+<div class="wp_syntax"><table><tbody><tr><td class="code"><pre class="python" style="font-family:monospace;"><span style="color: #ff7700;font-weight:bold;">from</span> django.<span style="color: black;">forms</span>.<span style="color: black;">forms</span> <span style="color: #ff7700;font-weight:bold;">import</span> BoundField
+<span style="color: #ff7700;font-weight:bold;">class</span> FieldSet<span style="color: black;">(</span><span style="color: #008000;">object</span><span style="color: black;">)</span>:
+    <span style="color: #ff7700;font-weight:bold;">def</span> <span style="color: #0000cd;">__init__</span><span style="color: black;">(</span><span style="color: #008000;">self</span><span style="color: #66cc66;">,</span>form<span style="color: #66cc66;">,</span>fields<span style="color: #66cc66;">,</span>legend<span style="color: #66cc66;">=</span><span style="color: #483d8b;">''</span><span style="color: #66cc66;">,</span>cls<span style="color: #66cc66;">=</span><span style="color: #008000;">None</span><span style="color: black;">)</span>:
+        <span style="color: #008000;">self</span>.<span style="color: black;">form</span> <span style="color: #66cc66;">=</span> form
+        <span style="color: #008000;">self</span>.<span style="color: black;">legend</span> <span style="color: #66cc66;">=</span> legend
+        <span style="color: #008000;">self</span>.<span style="color: black;">fields</span> <span style="color: #66cc66;">=</span> fields
+        <span style="color: #008000;">self</span>.<span style="color: black;">cls</span> <span style="color: #66cc66;">=</span> cls
+&nbsp;
+    <span style="color: #ff7700;font-weight:bold;">def</span> <span style="color: #0000cd;">__iter__</span><span style="color: black;">(</span><span style="color: #008000;">self</span><span style="color: black;">)</span>:
+        <span style="color: #ff7700;font-weight:bold;">for</span> name <span style="color: #ff7700;font-weight:bold;">in</span> <span style="color: #008000;">self</span>.<span style="color: black;">fields</span>:
+            field <span style="color: #66cc66;">=</span> <span style="color: #008000;">self</span>.<span style="color: black;">form</span>.<span style="color: black;">fields</span><span style="color: black;">[</span>name<span style="color: black;">]</span>
+            <span style="color: #ff7700;font-weight:bold;">yield</span> BoundField<span style="color: black;">(</span><span style="color: #008000;">self</span>.<span style="color: black;">form</span><span style="color: #66cc66;">,</span> field<span style="color: #66cc66;">,</span> name<span style="color: black;">)</span></pre></td></tr></tbody></table></div>
+
+<p>So now in my ‘view’ code I instantiate FieldSets and pass them into a new form tempalte that knows what to do with them.</p>
+
+<div class="wp_syntax"><table><tbody><tr><td class="code"><pre class="python" style="font-family:monospace;">    fieldsets <span style="color: #66cc66;">=</span> <span style="color: black;">(</span>FieldSet<span style="color: black;">(</span>f<span style="color: #66cc66;">,</span> <span style="color: black;">(</span><span style="color: #483d8b;">'prefix'</span><span style="color: #66cc66;">,</span><span style="color: #483d8b;">'first_name'</span><span style="color: #66cc66;">,</span><span style="color: #483d8b;">'last_name'</span><span style="color: black;">)</span><span style="color: #66cc66;">,</span>
+                        legend<span style="color: #66cc66;">=</span><span style="color: #483d8b;">'Name'</span><span style="color: #66cc66;">,</span>
+                        cls<span style="color: #66cc66;">=</span><span style="color: #483d8b;">"form_name_info"</span><span style="color: black;">)</span><span style="color: #66cc66;">,</span>
+                FieldSet<span style="color: black;">(</span>f<span style="color: #66cc66;">,</span> <span style="color: black;">(</span><span style="color: #483d8b;">'username'</span><span style="color: #66cc66;">,</span><span style="color: #483d8b;">'email'</span><span style="color: black;">)</span><span style="color: #66cc66;">,</span> 
+                        legend<span style="color: #66cc66;">=</span><span style="color: #483d8b;">"User Info"</span><span style="color: black;">)</span><span style="color: #66cc66;">,</span>
+                FieldSet<span style="color: black;">(</span>f<span style="color: #66cc66;">,</span> <span style="color: black;">(</span><span style="color: #483d8b;">'password'</span><span style="color: #66cc66;">,</span><span style="color: #483d8b;">'password_confirm'</span><span style="color: black;">)</span><span style="color: #66cc66;">,</span> 
+                        legend<span style="color: #66cc66;">=</span><span style="color: #483d8b;">"Password"</span><span style="color: black;">)</span> <span style="color: black;">)</span>
+&nbsp;
+    <span style="color: #ff7700;font-weight:bold;">return</span> render_to_response<span style="color: black;">(</span><span style="color: #483d8b;">'registration/user_register.html'</span><span style="color: #66cc66;">,</span>
+                          <span style="color: black;">{</span><span style="color: #483d8b;">'form'</span>: f<span style="color: #66cc66;">,</span><span style="color: #483d8b;">'fieldsets'</span>:fieldsets<span style="color: black;">}</span><span style="color: #66cc66;">,</span>
+                          context_instance<span style="color: #66cc66;">=</span>RequestContext<span style="color: black;">(</span>request<span style="color: black;">)</span><span style="color: black;">)</span></pre></td></tr></tbody></table></div>
+
+<p>Then I wrote an alternate form template with fieldsets to include when I want to use these fieldsets:</p>
+
+<div class="wp_syntax"><table><tbody><tr><td class="code"><pre class="none" style="font-family:monospace;">{# Include the hidden fields in the form #}
+{% if form.non_field_errors %}
+&lt;div class="form_errors"&gt;
+  {% for err in form.non_field_errors %}
+  &lt;div class="form_error_message"&gt;{{ err }}&lt;/div&gt;
+  {% endfor %}
+&lt;/div&gt;
+{% endif %}
+{% for hidden in form.hidden_fields %}
+   {{ hidden }}
+{% endfor %}
+{% for set in fieldsets %}
+&lt;fieldset {% if set.cls %}class="{{ set.cls }}"&gt;{% endif %}
+  &lt;legend&gt;{{ set.legend }}&lt;/legend&gt;
+  {% for field in set %}
+    &lt;div{% if field.errors %} class="error"{% endif %}&gt;
+      {{ field.label_tag }}
+      {{ field }}
+      {% for err in field.errors %}
+      &lt;span class="error_message"&gt;{{ err }}&lt;/span&gt;
+      {% endfor %}
+    &lt;/div&gt;
+  {% endfor %}
+{% endfor %}
+&lt;/fieldset&gt;</pre></td></tr></tbody></table></div>
+
+<p>And finally: voila, a form with fieldsets generated on the fly, with 
+custom rendering, custom validators, and styled error fields.</p>
+<div style="text-align:center">
+<img src="Python%20Django%20noob%20%20custom%20forms,%20errors,%20and%20fieldsets_files/fieldsets_oof.png" alt="fieldsets_oof.png" title="fieldsets_oof.png" height="579" border="0" width="493"><p></p>
+<div style="margin-top:0; margin-bottom: 1em; text-align:center; font-size:.75em">Behold! a, well, rather unremarkable form.</div>
+</div>
+<p>Is this the best way to do it? I don’t know, but by the end I was just glad I got at least <em>something</em>
+ to work. This was a first pass so I’m sure I’ll modify this over time 
+(for example, it would probably make sense to create some kind of a 
+FieldSet collection object that could render out a default fieldset for 
+fields not tied to a FieldSet object).  I found this day of frustrations
+ definitely dampened my Django enthusiasm a bit. I’m sure as I 
+understand and accept more of Django’s design (like no python code in 
+templates) it will get easier to work with. My initial impressions of 
+Django still stands, it makes getting up and running <strong>very</strong> fast and easy, but it can get thorny when you deviate from ‘the path’ at all.</p>
+				</div>
+			</div>
+			<p class="comments_closed">Comments on this entry are closed.</p>
+
+<div id="disqus_thread"><iframe verticalscrolling="no" horizontalscrolling="no" src="Python%20Django%20noob%20%20custom%20forms,%20errors,%20and%20fieldsets_files/a.htm" style="width: 100% ! important; border: medium none ! important; overflow: hidden ! important; height: 1934px ! important;" title="Disqus" tabindex="0" allowtransparency="true" data-disqus-uid="2" id="dsq-2" frameborder="0" scrolling="no" width="100%"></iframe></div>
+
+<script type="text/javascript">
+/* <![CDATA[ */
+    var disqus_url = 'http://mikepk.com/2010/08/python-django-forms-errors-fieldsets/';
+    var disqus_identifier = '808 http://mikepk.com/?p=808';
+    var disqus_container_id = 'disqus_thread';
+    var disqus_domain = 'disqus.com';
+    var disqus_shortname = 'mikepk';
+    var disqus_title = "Python Django noob: custom forms, errors, and fieldsets";
+        var disqus_config = function () {
+        var config = this; // Access to the config object
+        config.language = '';
+
+        /*
+           All currently supported events:
+            * preData — fires just before we request for initial data
+            * preInit - fires after we get initial data but before we load any dependencies
+            * onInit  - fires when all dependencies are resolved but before dtpl template is rendered
+            * afterRender - fires when template is rendered but before we show it
+            * onReady - everything is done
+         */
+
+        config.callbacks.preData.push(function() {
+            // clear out the container (its filled for SEO/legacy purposes)
+            document.getElementById(disqus_container_id).innerHTML = '';
+        });
+                config.callbacks.onReady.push(function() {
+            // sync comments in the background so we don't block the page
+            var script = document.createElement('script');
+            script.async = true;
+            script.src = '?cf_action=sync_comments&post_id=808';
+
+            var firstScript = document.getElementsByTagName( "script" )[0];
+            firstScript.parentNode.insertBefore(script, firstScript);
+        });
+                    };
+/* ]]> */
+</script>
+
+<script type="text/javascript">
+/* <![CDATA[ */
+    var DsqLocal = {
+        'trackbacks': [
+        ],
+        'trackback_url': "http:\/\/mikepk.com\/2010\/08\/python-django-forms-errors-fieldsets\/trackback\/"    };
+/* ]]> */
+</script>
+
+<script type="text/javascript">
+/* <![CDATA[ */
+(function() {
+    var dsq = document.createElement('script'); dsq.type = 'text/javascript';
+    dsq.async = true;
+    dsq.src = '//' + disqus_shortname + '.' + 'disqus.com' + '/embed.js?pname=wordpress&pver=2.74';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+})();
+/* ]]> */
+</script>
+			<div class="prev_next">
+				<p class="next_post">Next post: <a href="http://mikepk.com/2011/02/calendars/" rel="next">Calendars</a></p>
+				<p class="previous_post">Previous post: <a href="http://mikepk.com/2010/08/android-development-can-the-breakneck-pace-continue/" rel="prev">Android development, can the breakneck pace continue?</a></p>
+			</div>
+		</div>
+		<div class="sidebar">
+			<div id="header">
+				<div id="site_title"><a href="http://mikepk.com/">mikepk</a></div>
+				<div id="site_tagline">Web Tech, Programming, Boston Startups, Entrepreneurship and Random Stuff</div>
+			</div>
+<div class="widget widget_categories" id="categories-3"><p class="widget_title">Categories</p><select name="cat" id="cat" class="postform">
+	<option selected="selected" value="-1">Select Category</option>
+	<option class="level-0" value="22">apple&nbsp;&nbsp;(8)</option>
+	<option class="level-0" value="21">art&nbsp;&nbsp;(3)</option>
+	<option class="level-0" value="7">blog&nbsp;&nbsp;(6)</option>
+	<option class="level-0" value="23">browser&nbsp;&nbsp;(3)</option>
+	<option class="level-0" value="62">business&nbsp;&nbsp;(8)</option>
+	<option class="level-0" value="19">cool&nbsp;&nbsp;(6)</option>
+	<option class="level-0" value="136">daredevilplanner&nbsp;&nbsp;(29)</option>
+	<option class="level-0" value="9">experiment&nbsp;&nbsp;(6)</option>
+	<option class="level-0" value="24">firefox&nbsp;&nbsp;(1)</option>
+	<option class="level-0" value="39">friendfeed&nbsp;&nbsp;(3)</option>
+	<option class="level-0" value="27">fun&nbsp;&nbsp;(12)</option>
+	<option class="level-0" value="31">google&nbsp;&nbsp;(11)</option>
+	<option class="level-0" value="5">grazr&nbsp;&nbsp;(18)</option>
+	<option class="level-0" value="18">history&nbsp;&nbsp;(1)</option>
+	<option class="level-0" value="25">holiday&nbsp;&nbsp;(1)</option>
+	<option class="level-0" value="28">ideas&nbsp;&nbsp;(6)</option>
+	<option class="level-0" value="17">innovation&nbsp;&nbsp;(7)</option>
+	<option class="level-0" value="16">interesting&nbsp;&nbsp;(10)</option>
+	<option class="level-0" value="32">links&nbsp;&nbsp;(4)</option>
+	<option class="level-0" value="26">misc&nbsp;&nbsp;(9)</option>
+	<option class="level-0" value="20">music&nbsp;&nbsp;(2)</option>
+	<option class="level-0" value="10">open source&nbsp;&nbsp;(1)</option>
+	<option class="level-0" value="52">politics&nbsp;&nbsp;(2)</option>
+	<option class="level-0" value="11">PR&nbsp;&nbsp;(1)</option>
+	<option class="level-0" value="141">programming&nbsp;&nbsp;(2)</option>
+	<option class="level-0" value="8">publishing&nbsp;&nbsp;(1)</option>
+	<option class="level-0" value="222">python&nbsp;&nbsp;(2)</option>
+	<option class="level-0" value="6">scaling&nbsp;&nbsp;(4)</option>
+	<option class="level-0" value="14">scoble&nbsp;&nbsp;(1)</option>
+	<option class="level-0" value="15">service&nbsp;&nbsp;(2)</option>
+	<option class="level-0" value="258">smarterer&nbsp;&nbsp;(5)</option>
+	<option class="level-0" value="68">snapmyinfo&nbsp;&nbsp;(14)</option>
+	<option class="level-0" value="29">social media&nbsp;&nbsp;(4)</option>
+	<option class="level-0" value="34">software&nbsp;&nbsp;(9)</option>
+	<option class="level-0" value="12">startup&nbsp;&nbsp;(18)</option>
+	<option class="level-0" value="13">summize&nbsp;&nbsp;(3)</option>
+	<option class="level-0" value="3">technology&nbsp;&nbsp;(34)</option>
+	<option class="level-0" value="33">test&nbsp;&nbsp;(2)</option>
+	<option class="level-0" value="4">twitter&nbsp;&nbsp;(8)</option>
+	<option class="level-0" value="30">vibemetrix&nbsp;&nbsp;(2)</option>
+	<option class="level-0" value="61">video&nbsp;&nbsp;(2)</option>
+	<option class="level-0" value="132">yajaf&nbsp;&nbsp;(19)</option>
+</select>
+
+<script type="text/javascript">
+/* <![CDATA[ */
+	var dropdown = document.getElementById("cat");
+	function onCatChange() {
+		if ( dropdown.options[dropdown.selectedIndex].value > 0 ) {
+			location.href = "http://mikepk.com/?cat="+dropdown.options[dropdown.selectedIndex].value;
+		}
+	}
+	dropdown.onchange = onCatChange;
+/* ]]> */
+</script>
+
+</div><div class="widget widget_archive" id="archives-3"><p class="widget_title">Archives</p>		<select name="archive-dropdown" onchange="document.location.href=this.options[this.selectedIndex].value;"> <option selected="selected" value="">Select Month</option> 	<option value="http://mikepk.com/2013/05/"> May 2013 &nbsp;(1)</option>
+	<option value="http://mikepk.com/2013/04/"> April 2013 &nbsp;(4)</option>
+	<option value="http://mikepk.com/2012/10/"> October 2012 &nbsp;(1)</option>
+	<option value="http://mikepk.com/2012/05/"> May 2012 &nbsp;(1)</option>
+	<option value="http://mikepk.com/2011/10/"> October 2011 &nbsp;(1)</option>
+	<option value="http://mikepk.com/2011/09/"> September 2011 &nbsp;(1)</option>
+	<option value="http://mikepk.com/2011/08/"> August 2011 &nbsp;(1)</option>
+	<option value="http://mikepk.com/2011/06/"> June 2011 &nbsp;(1)</option>
+	<option value="http://mikepk.com/2011/03/"> March 2011 &nbsp;(1)</option>
+	<option value="http://mikepk.com/2011/02/"> February 2011 &nbsp;(1)</option>
+	<option value="http://mikepk.com/2010/08/"> August 2010 &nbsp;(2)</option>
+	<option value="http://mikepk.com/2010/07/"> July 2010 &nbsp;(6)</option>
+	<option value="http://mikepk.com/2010/06/"> June 2010 &nbsp;(3)</option>
+	<option value="http://mikepk.com/2010/05/"> May 2010 &nbsp;(1)</option>
+	<option value="http://mikepk.com/2010/04/"> April 2010 &nbsp;(4)</option>
+	<option value="http://mikepk.com/2010/03/"> March 2010 &nbsp;(12)</option>
+	<option value="http://mikepk.com/2010/02/"> February 2010 &nbsp;(6)</option>
+	<option value="http://mikepk.com/2009/12/"> December 2009 &nbsp;(5)</option>
+	<option value="http://mikepk.com/2009/11/"> November 2009 &nbsp;(2)</option>
+	<option value="http://mikepk.com/2009/10/"> October 2009 &nbsp;(3)</option>
+	<option value="http://mikepk.com/2009/09/"> September 2009 &nbsp;(1)</option>
+	<option value="http://mikepk.com/2009/08/"> August 2009 &nbsp;(3)</option>
+	<option value="http://mikepk.com/2009/07/"> July 2009 &nbsp;(2)</option>
+	<option value="http://mikepk.com/2009/06/"> June 2009 &nbsp;(1)</option>
+	<option value="http://mikepk.com/2009/04/"> April 2009 &nbsp;(1)</option>
+	<option value="http://mikepk.com/2009/01/"> January 2009 &nbsp;(2)</option>
+	<option value="http://mikepk.com/2008/12/"> December 2008 &nbsp;(2)</option>
+	<option value="http://mikepk.com/2008/11/"> November 2008 &nbsp;(1)</option>
+	<option value="http://mikepk.com/2008/09/"> September 2008 &nbsp;(2)</option>
+	<option value="http://mikepk.com/2008/08/"> August 2008 &nbsp;(1)</option>
+	<option value="http://mikepk.com/2008/07/"> July 2008 &nbsp;(2)</option>
+	<option value="http://mikepk.com/2008/06/"> June 2008 &nbsp;(9)</option>
+	<option value="http://mikepk.com/2008/05/"> May 2008 &nbsp;(13)</option>
+	<option value="http://mikepk.com/2008/04/"> April 2008 &nbsp;(1)</option>
+	<option value="http://mikepk.com/2008/02/"> February 2008 &nbsp;(3)</option>
+	<option value="http://mikepk.com/2007/11/"> November 2007 &nbsp;(1)</option>
+	<option value="http://mikepk.com/2007/09/"> September 2007 &nbsp;(1)</option>
+	<option value="http://mikepk.com/2007/08/"> August 2007 &nbsp;(2)</option>
+	<option value="http://mikepk.com/2007/07/"> July 2007 &nbsp;(3)</option>
+	<option value="http://mikepk.com/2007/06/"> June 2007 &nbsp;(2)</option>
+	<option value="http://mikepk.com/2007/05/"> May 2007 &nbsp;(2)</option>
+	<option value="http://mikepk.com/2007/04/"> April 2007 &nbsp;(6)</option>
+	<option value="http://mikepk.com/2007/03/"> March 2007 &nbsp;(7)</option>
+	<option value="http://mikepk.com/2007/02/"> February 2007 &nbsp;(9)</option>
+	<option value="http://mikepk.com/2007/01/"> January 2007 &nbsp;(7)</option>
+	<option value="http://mikepk.com/2006/12/"> December 2006 &nbsp;(2)</option>
+	<option value="http://mikepk.com/2006/11/"> November 2006 &nbsp;(7)</option>
+	<option value="http://mikepk.com/2006/10/"> October 2006 &nbsp;(7)</option>
+	<option value="http://mikepk.com/2006/09/"> September 2006 &nbsp;(8)</option>
+	<option value="http://mikepk.com/2006/08/"> August 2006 &nbsp;(13)</option>
+	<option value="http://mikepk.com/2006/07/"> July 2006 &nbsp;(5)</option>
+	<option value="http://mikepk.com/2006/06/"> June 2006 &nbsp;(10)</option>
+	<option value="http://mikepk.com/2006/05/"> May 2006 &nbsp;(18)</option>
+	<option value="http://mikepk.com/2006/04/"> April 2006 &nbsp;(21)</option>
+	<option value="http://mikepk.com/2006/03/"> March 2006 &nbsp;(31)</option>
+	<option value="http://mikepk.com/2006/02/"> February 2006 &nbsp;(13)</option>
+	<option value="http://mikepk.com/2006/01/"> January 2006 &nbsp;(13)</option>
+	<option value="http://mikepk.com/2005/12/"> December 2005 &nbsp;(9)</option>
+	<option value="http://mikepk.com/2005/11/"> November 2005 &nbsp;(11)</option>
+	<option value="http://mikepk.com/2005/10/"> October 2005 &nbsp;(3)</option>
+ </select>
+</div>		</div>
+	</div>
+</div>
+
+
+
+
+
+
+</body></html>
+<!-- Dynamic page generated in 0.372 seconds. -->
+<!-- Cached page generated by WP-Super-Cache on 2014-02-21 08:08:31 -->
+<!-- super cache -->

@@ -1,0 +1,5 @@
+from django.conf.urls import patters, include, url
+
+urlpatterns = patters('',
+	url(r'^all/$','article.views.articles'),
+)

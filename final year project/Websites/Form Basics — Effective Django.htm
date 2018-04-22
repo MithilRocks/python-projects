@@ -1,0 +1,449 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <script src="Form%20Basics%20%E2%80%94%20Effective%20Django_files/ga.js" async="" type="text/javascript"></script><script type="text/javascript">
+
+      var _gaq = _gaq || [];
+      _gaq.push(['_setAccount', 'UA-188298-7']);
+      _gaq.push(['_trackPageview']);
+
+      (function() {
+        var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+        ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+        var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+      })();
+    </script>
+    <title>Form Basics — Effective Django</title>
+    
+    <link rel="stylesheet" href="Form%20Basics%20%E2%80%94%20Effective%20Django_files/nature.css" type="text/css">
+    <link rel="stylesheet" href="Form%20Basics%20%E2%80%94%20Effective%20Django_files/pygments.css" type="text/css">
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="Form%20Basics%20%E2%80%94%20Effective%20Django_files/jquery.js"></script>
+    <script type="text/javascript" src="Form%20Basics%20%E2%80%94%20Effective%20Django_files/underscore.js"></script>
+    <script type="text/javascript" src="Form%20Basics%20%E2%80%94%20Effective%20Django_files/doctools.js"></script>
+    <link rel="top" title="Effective Django" href="http://effectivedjango.com/index.html">
+    <link rel="up" title="Effective Django Tutorial" href="http://effectivedjango.com/tutorial/index.html">
+    <link rel="next" title="Related Models" href="http://effectivedjango.com/tutorial/related.html">
+    <link rel="prev" title="Additional Generic Views" href="http://effectivedjango.com/tutorial/additional-views.html"> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="http://effectivedjango.com/tutorial/related.html" title="Related Models" accesskey="N">next</a></li>
+        <li class="right">
+          <a href="http://effectivedjango.com/tutorial/additional-views.html" title="Additional Generic Views" accesskey="P">previous</a> |</li>
+        <li><a href="http://effectivedjango.com/index.html">Effective Django</a> »</li>
+          <li><a href="http://effectivedjango.com/tutorial/index.html" accesskey="U">Effective Django Tutorial</a> »</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="form-basics">
+<h1>Form Basics<a class="headerlink" href="#form-basics" title="Permalink to this headline">¶</a><a class="headerlink" href="http://effectivedjango.com/slides/tutorial/forms.html#form-basics" title="Slides">§</a></h1>
+<span class="admonition-django-forms"></span><span class="admonition-defining-forms"></span><span class="admonition-instantiating-a-form"></span><span class="admonition-accessing-fields"></span><span class="admonition-validating-the-form"></span><span class="admonition-field-validation"></span><span class="admonition-field-cleaning"></span><p>Up until this point we’ve been using forms without really needing to
+be aware of it. A <a class="reference external" href="https://docs.djangoproject.com/en/1.5/topics/forms/">Django Form</a> is responsible for taking some user
+input, validating it, and turning it into Python objects. They also
+have some handy rendering methods, but I consider those sugar: the
+real power is in making sure that input from your users is what it
+says it is.</p>
+<p>The <a class="reference external" href="https://docs.djangoproject.com/en/1.5/topics/class-based-views/">Generic Views</a>, specifically the ones we’ve been using, all
+operate on a particular model. Django is able to take the model
+definition that we’ve created and extrapolate a Form from it. Django
+can do this because both Models and Forms are constructed of fields
+that have a particular type and particular validation rules. Models
+use those fields to map data to types that your database understands;
+Forms use them to map input to Python types <a class="footnote-reference" href="#id2" id="id1">[1]</a>. Forms that map to a
+particular Model are called <a class="reference external" href="https://docs.djangoproject.com/en/1.5/topics/forms/modelforms">ModelForms</a>; you can think of them as
+taking user input and transforming it into an instance of a Model.</p>
+<table class="docutils footnote" frame="void" id="id2" rules="none">
+<colgroup><col class="label"><col></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id1">[1]</a></td><td>While I’m referring to them both as fields, they’re really
+completely different implementations. But the analogy holds.</td></tr>
+</tbody>
+</table>
+<div class="section" id="adding-fields-to-the-form">
+<h2>Adding Fields to the Form<a class="headerlink" href="#adding-fields-to-the-form" title="Permalink to this headline">¶</a><a class="headerlink" href="http://effectivedjango.com/slides/tutorial/forms.html#adding-fields-to-the-form" title="Slides">§</a></h2>
+<p>So what if we want to add a field to our form? Say, we want to require
+confirmation of the email address. In that case we can create a new
+form, and override the default used by our views.</p>
+<p>First, in the <tt class="docutils literal"><span class="pre">contacts</span></tt> app directory, we’ll create a new file,
+<tt class="docutils literal"><span class="pre">forms.py</span></tt>.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">django</span> <span class="kn">import</span> <span class="n">forms</span>
+<span class="kn">from</span> <span class="nn">django.core.exceptions</span> <span class="kn">import</span> <span class="n">ValidationError</span>
+
+<span class="kn">from</span> <span class="nn">contacts.models</span> <span class="kn">import</span> <span class="n">Contact</span>
+
+
+<span class="k">class</span> <span class="nc">ContactForm</span><span class="p">(</span><span class="n">forms</span><span class="o">.</span><span class="n">ModelForm</span><span class="p">):</span>
+
+    <span class="n">confirm_email</span> <span class="o">=</span> <span class="n">forms</span><span class="o">.</span><span class="n">EmailField</span><span class="p">(</span>
+        <span class="s">"Confirm email"</span><span class="p">,</span>
+        <span class="n">required</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="k">class</span> <span class="nc">Meta</span><span class="p">:</span>
+        <span class="n">model</span> <span class="o">=</span> <span class="n">Contact</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">'instance'</span><span class="p">):</span>
+            <span class="n">email</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">'instance'</span><span class="p">]</span><span class="o">.</span><span class="n">email</span>
+            <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s">'initial'</span><span class="p">,</span> <span class="p">{})[</span><span class="s">'confirm_email'</span><span class="p">]</span> <span class="o">=</span> <span class="n">email</span>
+
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">ContactForm</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Here we’re creating a new <tt class="docutils literal"><span class="pre">ModelForm</span></tt>; we associate the form with
+our model in the <tt class="docutils literal"><span class="pre">Meta</span></tt> inner class.</p>
+<p>We’re also adding an additional field, <tt class="docutils literal"><span class="pre">confirm_email</span></tt>. This is an
+example of a field declaration in a model. The first argument is the
+label, and then there are additional keyword arguments; in this case,
+we simply mark it required.</p>
+<p>Finally, in the constructor we mutate the <tt class="docutils literal"><span class="pre">initial</span></tt> kwarg.
+<tt class="docutils literal"><span class="pre">initial</span></tt> is a dictionary of values that will be used as the default
+values for an <a class="reference external" href="https://docs.djangoproject.com/en/1.5/ref/forms/api/#ref-forms-api-bound-unbound">unbound form</a>. Model Forms have another kwarg,
+<tt class="docutils literal"><span class="pre">instance</span></tt>, that holds the instance we’re editing.</p>
+</div>
+<div class="section" id="overriding-the-default-form">
+<h2>Overriding the Default Form<a class="headerlink" href="#overriding-the-default-form" title="Permalink to this headline">¶</a><a class="headerlink" href="http://effectivedjango.com/slides/tutorial/forms.html#overriding-the-default-form" title="Slides">§</a></h2>
+<p>We’ve defined a form with the extra field, but we still need to tell
+our view to use it. You can do this in a couple of ways, but the
+simplest is to set the <tt class="docutils literal"><span class="pre">form_class</span></tt> property on the View class.
+We’ll add that property to our <tt class="docutils literal"><span class="pre">CreateContactView</span></tt> and
+<tt class="docutils literal"><span class="pre">UpdateContactView</span></tt> in <tt class="docutils literal"><span class="pre">views.py</span></tt>.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">forms</span>
+<span class="o">...</span>
+<span class="k">class</span> <span class="nc">CreateContactView</span><span class="p">(</span><span class="n">CreateView</span><span class="p">):</span>
+
+    <span class="n">model</span> <span class="o">=</span> <span class="n">Contact</span>
+    <span class="n">template_name</span> <span class="o">=</span> <span class="s">'edit_contact.html'</span>
+    <span class="n">form_class</span> <span class="o">=</span> <span class="n">forms</span><span class="o">.</span><span class="n">ContactForm</span>
+</pre></div>
+</div>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">class</span> <span class="nc">UpdateContactView</span><span class="p">(</span><span class="n">UpdateView</span><span class="p">):</span>
+
+    <span class="n">model</span> <span class="o">=</span> <span class="n">Contact</span>
+    <span class="n">template_name</span> <span class="o">=</span> <span class="s">'edit_contact.html'</span>
+    <span class="n">form_class</span> <span class="o">=</span> <span class="n">forms</span><span class="o">.</span><span class="n">ContactForm</span>
+</pre></div>
+</div>
+<p>If we fire up the server and visit the edit or create pages, we’ll see
+the additional field. We can see that it’s required, but there’s no
+validation that the two fields match. To support that we’ll need to
+add some custom validation to the Form.</p>
+</div>
+<div class="section" id="customizing-validation">
+<h2>Customizing Validation<a class="headerlink" href="#customizing-validation" title="Permalink to this headline">¶</a><a class="headerlink" href="http://effectivedjango.com/slides/tutorial/forms.html#customizing-validation" title="Slides">§</a></h2>
+<p>Forms have two different phases of validation: field and form. All the
+fields are validated and converted to Python objects (if possible)
+before form validation begins.</p>
+<p>Field validation takes place for an individual field: things like
+minimum and maximum length, making sure it looks like a URL, and date
+range validation are all examples of field validation. Django doesn’t
+guarantee that field validation happens in any order, so you can’t
+count on other fields being available for comparison during this
+phase.</p>
+<p>Form validation, on the other hand, happens after all fields have been
+validated and converted to Python objects, and gives you the
+opportunity to do things like make sure passwords match, or in this
+case, email addresses.</p>
+<p>Form validation takes place in a form’s <tt class="docutils literal"><span class="pre">clean()</span></tt> method.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">class</span> <span class="nc">ContactForm</span><span class="p">(</span><span class="n">forms</span><span class="o">.</span><span class="n">ModelForm</span><span class="p">):</span>
+<span class="o">...</span>
+    <span class="k">def</span> <span class="nf">clean</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cleaned_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">'email'</span><span class="p">)</span> <span class="o">!=</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cleaned_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">'confirm_email'</span><span class="p">)):</span>
+
+            <span class="k">raise</span> <span class="n">ValidationError</span><span class="p">(</span>
+                <span class="s">"Email addresses must match."</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cleaned_data</span>
+</pre></div>
+</div>
+<p>When you enter the <tt class="docutils literal"><span class="pre">clean</span></tt> method, all of the fields that validated
+are available in the <tt class="docutils literal"><span class="pre">cleaned_data</span></tt> dictionary. The <tt class="docutils literal"><span class="pre">clean</span></tt> method
+may add, remove, or modify values, but <strong>must</strong> return the dictionary
+of cleaned data. <tt class="docutils literal"><span class="pre">clean</span></tt> may also raise a <tt class="docutils literal"><span class="pre">ValidationError</span></tt> if it
+encounters an error. This will be available as part of the forms’
+<tt class="docutils literal"><span class="pre">errors</span></tt> property, and is shown by default when you render the form.</p>
+<p>Note that I said <tt class="docutils literal"><span class="pre">cleaned_data</span></tt> contains all the fields <em>that
+validated</em>. That’s because form-level validation <strong>always</strong> happens,
+even if no fields were successfully validated. That’s why in the clean
+method we use <tt class="docutils literal"><span class="pre">cleaned_data.get('email')</span></tt> instead of
+<tt class="docutils literal"><span class="pre">cleaned_data['email']</span></tt>.</p>
+<p>If you visit the create or update views now, we’ll see an extra field
+there. Try to make a change, or create a contact, without entering the
+email address twice.</p>
+</div>
+<div class="section" id="controlling-form-rendering">
+<h2>Controlling Form Rendering<a class="headerlink" href="#controlling-form-rendering" title="Permalink to this headline">¶</a><a class="headerlink" href="http://effectivedjango.com/slides/tutorial/forms.html#controlling-form-rendering" title="Slides">§</a></h2>
+<span class="admonition-rendering-forms"></span><p>Our templates until now look pretty magical when it comes to forms:
+the extent of our HTML tags has been something like:</p>
+<div class="highlight-python"><pre>&lt;form action="{{ action }}" method="POST"&gt;
+  {% csrf_token %}
+  &lt;ul&gt;
+    {{ form.as_ul }}
+  &lt;/ul&gt;
+  &lt;input type="submit" value="Save" /&gt;
+&lt;/form&gt;</pre>
+</div>
+<p>We’re living at the whim of <tt class="docutils literal"><span class="pre">form.as_ul</span></tt>, and it’s likely we want
+something different.</p>
+<p>Forms have three pre-baked output formats: <tt class="docutils literal"><span class="pre">as_ul</span></tt>, <tt class="docutils literal"><span class="pre">as_p</span></tt>, and
+<tt class="docutils literal"><span class="pre">as_table</span></tt>. If <tt class="docutils literal"><span class="pre">as_ul</span></tt> outputs the form elements as the items in
+an unordered list, it’s not too mysterious what <tt class="docutils literal"><span class="pre">as_p</span></tt> and
+<tt class="docutils literal"><span class="pre">as_table</span></tt> do.</p>
+<span class="admonition-controlling-form-output"></span><p>Often, though, you need more control. For those cases, you can take
+full control. First, a form is iterable; try replacing your call to
+<tt class="docutils literal"><span class="pre">{{form.as_ul}}</span></tt> with this:</p>
+<div class="highlight-python"><pre>{% for field in form %}
+{{ field }}
+{% endfor %}</pre>
+</div>
+<p>As you can see, <tt class="docutils literal"><span class="pre">field</span></tt> renders as the input for each field in the
+form. When you iterate over a Form, you’re iterating over a sequence
+of <a class="reference external" href="https://docs.djangoproject.com/en/1.5/ref/forms/api/#django.forms.BoundField">BoundField</a> objects. A <tt class="docutils literal"><span class="pre">BoundField</span></tt> wraps the field definition
+from your Form (or derived from the ModelForm) along with any data and
+error state it may be bound to. This means it has some properties that
+are handy for customizing rendering.</p>
+<p>In addition to supporting iteration, you can access an individual
+BoundField directly, treating the Form like a dictionary:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="p">{{</span> <span class="n">form</span><span class="o">.</span><span class="n">email</span> <span class="p">}}</span>
+</pre></div>
+</div>
+<div class="sidebar">
+<p class="first sidebar-title">Dictionary!?!</p>
+<p class="last">That may not look like a dictionary access, but remember that Django
+templates are quite restrictive in their syntax. Writing <tt class="docutils literal"><span class="pre">foo.bar</span></tt>
+will look for a property <tt class="docutils literal"><span class="pre">bar</span></tt> on <tt class="docutils literal"><span class="pre">foo</span></tt>, and if it’s callable,
+call it. If it doesn’t find a property, it’ll map that to something
+like <tt class="docutils literal"><span class="pre">foo['bar']</span></tt>. So when it comes to writing Django templates,
+dictionary elements act just like properties.</p>
+</div>
+<p>Consider the following alternative to <tt class="docutils literal"><span class="pre">edit_contact.html</span></tt>.</p>
+<div class="highlight-html"><pre>{% extends "base.html" %}
+
+{% block content %}
+
+{% if contact.id %}
+&lt;h1&gt;Edit Contact&lt;/h1&gt;
+{% else %}
+&lt;h1&gt;Add Contact&lt;/h1&gt;
+{% endif %}
+
+&lt;form action="{{ action }}" method="POST"&gt;
+  {% csrf_token %}
+  {% if form.non_field_errors %}
+    &lt;ul&gt;
+      {% for error in form.non_field_errors %}
+        &lt;li&gt;{{ error }}&lt;/li&gt;
+      {% endfor %}
+    &lt;/ul&gt;
+  {% endif %}
+  {% for field in form %}
+  &lt;div id="{{ field.auto_id }}_container"&gt;
+    {{ field.help_text }}
+    &lt;div&gt;
+      {{ field.label_tag }} {{ field }}
+    &lt;/div&gt;
+    &lt;div id="{{ field.auto_id }}_errors"&gt;
+      {{ field.errors }}
+    &lt;/div&gt;
+  &lt;/div&gt;
+  {% endfor %}
+
+  &lt;input id="save_contact" type="submit" value="Save" /&gt;
+&lt;/form&gt;
+
+{% if contact.id %}
+&lt;a href="{% url "contacts-edit-addresses" pk=contact.id %}"&gt;
+  Edit Addresses
+&lt;/a&gt;
+&lt;a href="{% url "contacts-delete" pk=contact.id %}"&gt;Delete&lt;/a&gt;
+{% endif %}
+
+&lt;a href="{% url "contacts-list" %}"&gt;back to list&lt;/a&gt;
+
+{% endblock %}
+</pre>
+</div>
+<p>In this example we see a few different things at work:</p>
+<ul>
+<li><p class="first"><tt class="docutils literal"><span class="pre">field.auto_id</span></tt> to get the automatically generated field ID</p>
+</li>
+<li><p class="first">Combining that ID with <tt class="docutils literal"><span class="pre">_container</span></tt> and <tt class="docutils literal"><span class="pre">_errors</span></tt> to give our
+related elements names that consistently match</p>
+</li>
+<li><p class="first">Using <tt class="docutils literal"><span class="pre">field.label_tag</span></tt> to generate the label. <tt class="docutils literal"><span class="pre">label_tag</span></tt> adds
+the appropriate <tt class="docutils literal"><span class="pre">for</span></tt> property to the tag, too. For the
+<tt class="docutils literal"><span class="pre">last_name</span></tt> field, this looks like:</p>
+<div class="highlight-python"><pre>&lt;label for="id_last_name"&gt;Last name&lt;/label&gt;</pre>
+</div>
+</li>
+<li><p class="first">Using <tt class="docutils literal"><span class="pre">field.errors</span></tt> to show the errors in a specific place. The
+Django Form documentation has details on further customizing <a class="reference external" href="https://docs.djangoproject.com/en/1.5/ref/forms/api/#how-errors-are-displayed">how
+errors are displayed</a>.</p>
+</li>
+<li><p class="first">Finally, <tt class="docutils literal"><span class="pre">field.help_text</span></tt>. You can specify a <tt class="docutils literal"><span class="pre">help_text</span></tt>
+keyword argument to each field when creating your form, which is
+accessible here. Defining that text in the Form definition is
+desirable because you can easily mark it up for translation.</p>
+</li>
+</ul>
+</div>
+<div class="section" id="testing-forms">
+<h2>Testing Forms<a class="headerlink" href="#testing-forms" title="Permalink to this headline">¶</a><a class="headerlink" href="http://effectivedjango.com/slides/tutorial/forms.html#testing-forms" title="Slides">§</a></h2>
+<p>It’s easy to imagine how you’d use the <tt class="docutils literal"><span class="pre">LiveServerTestCase</span></tt> to write
+an integration test for a Form. But that wouldn’t just be testing the
+Form, that’d be testing the View, the URL configuration, and probably
+the Model (in this case, at least). We’ve built some custom logic into
+our form’s validator, and it’s important to test that and that alone.
+Integration tests are invaluable, but when they fail there’s more than
+one suspect. I like tests that fail with a single suspect.</p>
+<p>Writing unit tests for a Form usually means crafting some dictionary
+of form data that meets the starting condition for your test. Some
+Forms can be complex or long, so we can use a helper to generate the
+starting point from the Form’s initial data.</p>
+<p><strong>Rebar</strong> is a collection of utilities for working with Forms. We’ll
+install Rebar so we can use the testing utilities.</p>
+<div class="highlight-python"><pre>(tutorial)$ pip install rebar</pre>
+</div>
+<p>Then we can write a unit test that tests two cases: success (email
+addresses match) and failure (they do not).</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">rebar.testing</span> <span class="kn">import</span> <span class="n">flatten_to_dict</span>
+<span class="kn">from</span> <span class="nn">contacts</span> <span class="kn">import</span> <span class="n">forms</span>
+<span class="o">...</span>
+<span class="k">class</span> <span class="nc">EditContactFormTests</span><span class="p">(</span><span class="n">TestCase</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">test_mismatch_email_is_invalid</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="n">form_data</span> <span class="o">=</span> <span class="n">flatten_to_dict</span><span class="p">(</span><span class="n">forms</span><span class="o">.</span><span class="n">ContactForm</span><span class="p">())</span>
+        <span class="n">form_data</span><span class="p">[</span><span class="s">'first_name'</span><span class="p">]</span> <span class="o">=</span> <span class="s">'Foo'</span>
+        <span class="n">form_data</span><span class="p">[</span><span class="s">'last_name'</span><span class="p">]</span> <span class="o">=</span> <span class="s">'Bar'</span>
+        <span class="n">form_data</span><span class="p">[</span><span class="s">'email'</span><span class="p">]</span> <span class="o">=</span> <span class="s">'foo@example.com'</span>
+        <span class="n">form_data</span><span class="p">[</span><span class="s">'confirm_email'</span><span class="p">]</span> <span class="o">=</span> <span class="s">'bar@example.com'</span>
+
+        <span class="n">bound_form</span> <span class="o">=</span> <span class="n">forms</span><span class="o">.</span><span class="n">ContactForm</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">form_data</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertFalse</span><span class="p">(</span><span class="n">bound_form</span><span class="o">.</span><span class="n">is_valid</span><span class="p">())</span>
+
+    <span class="k">def</span> <span class="nf">test_same_email_is_valid</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="n">form_data</span> <span class="o">=</span> <span class="n">flatten_to_dict</span><span class="p">(</span><span class="n">forms</span><span class="o">.</span><span class="n">ContactForm</span><span class="p">())</span>
+        <span class="n">form_data</span><span class="p">[</span><span class="s">'first_name'</span><span class="p">]</span> <span class="o">=</span> <span class="s">'Foo'</span>
+        <span class="n">form_data</span><span class="p">[</span><span class="s">'last_name'</span><span class="p">]</span> <span class="o">=</span> <span class="s">'Bar'</span>
+        <span class="n">form_data</span><span class="p">[</span><span class="s">'email'</span><span class="p">]</span> <span class="o">=</span> <span class="s">'foo@example.com'</span>
+        <span class="n">form_data</span><span class="p">[</span><span class="s">'confirm_email'</span><span class="p">]</span> <span class="o">=</span> <span class="s">'foo@example.com'</span>
+
+        <span class="n">bound_form</span> <span class="o">=</span> <span class="n">forms</span><span class="o">.</span><span class="n">ContactForm</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">form_data</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assert_</span><span class="p">(</span><span class="n">bound_form</span><span class="o">.</span><span class="n">is_valid</span><span class="p">())</span>
+</pre></div>
+</div>
+<p>An interesting thing to note here is the use of the <tt class="docutils literal"><span class="pre">is_valid()</span></tt>
+method. We could just as easily introspect the <tt class="docutils literal"><span class="pre">errors</span></tt> property
+that we used in our template above, but in this case we just need a
+Boolean answer: is the form valid, or not? Note that we do need to
+provide a first and last name, as well, since those are required
+fields.</p>
+</div>
+<div class="section" id="review">
+<h2>Review<a class="headerlink" href="#review" title="Permalink to this headline">¶</a><a class="headerlink" href="http://effectivedjango.com/slides/tutorial/forms.html#review" title="Slides">§</a></h2>
+<ul class="simple">
+<li>Forms take user input, validate it, and convert it to Python objects</li>
+<li>Forms are composed of Fields, just like Models</li>
+<li>Fields have validation built in</li>
+<li>You can customize per-field validation, as well as form validation</li>
+<li>If you need to compare fields to one another, you need to implement
+the <tt class="docutils literal"><span class="pre">clean</span></tt> method</li>
+<li>Forms are iterable over, and support dictionary-like access to, the
+bound fields</li>
+<li>A Bound Field has properties and methods for performing fine-grained
+customization of rendering.</li>
+<li>Forms are unit testable; Rebar has some utilities to help with
+testing large forms.</li>
+</ul>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="http://effectivedjango.com/index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Form Basics</a><ul>
+<li><a class="reference internal" href="#adding-fields-to-the-form">Adding Fields to the Form</a></li>
+<li><a class="reference internal" href="#overriding-the-default-form">Overriding the Default Form</a></li>
+<li><a class="reference internal" href="#customizing-validation">Customizing Validation</a></li>
+<li><a class="reference internal" href="#controlling-form-rendering">Controlling Form Rendering</a></li>
+<li><a class="reference internal" href="#testing-forms">Testing Forms</a></li>
+<li><a class="reference internal" href="#review">Review</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="http://effectivedjango.com/tutorial/additional-views.html" title="previous chapter">Additional Generic Views</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="http://effectivedjango.com/tutorial/related.html" title="next chapter">Related Models</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="http://effectivedjango.com/_sources/tutorial/forms.txt" rel="nofollow">Show Source</a></li>
+  </ul>
+  <h3>Slides</h3>
+  <ul class="this-page-menu">
+    <li><a href="http://effectivedjango.com/slides/tutorial/forms.html" rel="nofollow">View as slides</a></li>
+  </ul>
+<div id="searchbox" style="">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input name="q" type="text">
+      <input value="Go" type="submit">
+      <input name="check_keywords" value="yes" type="hidden">
+      <input name="area" value="default" type="hidden">
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="http://effectivedjango.com/tutorial/related.html" title="Related Models">next</a></li>
+        <li class="right">
+          <a href="http://effectivedjango.com/tutorial/additional-views.html" title="Additional Generic Views">previous</a> |</li>
+        <li><a href="http://effectivedjango.com/index.html">Effective Django</a> »</li>
+          <li><a href="http://effectivedjango.com/tutorial/index.html">Effective Django Tutorial</a> »</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        © Copyright 2012-2013, Nathan Yergler.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.
+    </div>
+  
+</body></html>

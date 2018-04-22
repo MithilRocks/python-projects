@@ -1,0 +1,866 @@
+<!DOCTYPE html PUBLIC "-//w3c//dtd html 4.0 transitional//en">
+<html><head>
+<meta http-equiv="content-type" content="text/html; charset=windows-1252">
+    <title>Hilltop: A Search Engine based on Expert Documents</title>
+<style type="text/css">
+<!--
+BODY { BACKGROUND COLOR: #ffffff; FONT FAMILY: times new roman,
+serif; }
+A:link, A:visited, A:active { TEXT-DECORATION: none; FONT-WEIGHT:
+bold; COLOR: #0000FF}
+
+H1, H2 { TEXT-ALIGN: center; FONT-WEIGHT: bold; }
+H3, H4, H5 { TEXT-ALIGN: left; FONT-WEIGHT: bold; }
+H6 { TEXT-ALIGN: center; FONT-WEIGHT: bold; FONT-SIZE: small; }
+
+P { TEXT-INDENT: 1em; }
+P.CODE { TEXT-INDENT: 0; COLOR: #FF0000; }
+B { FONT-WEIGHT: bold; }
+UL { list-style: disc }
+OL { list-style: decimal }
+UL, OL, DT, DL { MARGIN-LEFT: 2em; FONT-SIZE: small; }
+DD { MARGIN-TOP: 5em; margin-left: 5em }
+BLOCKQUOTE { MARGIN-LEFT: 1em; MARGIN-RIGHT: 1em }
+IMG { VERTICAL-ALIGN: top; ALIGN: center; }
+-->
+</style>
+  </head>
+  
+<body bgcolor="#ffffff" lang="EN">
+
+<h1>Hilltop: A Search Engine based on Expert Documents</h1>
+
+<h6>
+Krishna Bharat<br>
+Compaq, Systems Research Center, Palo Alto, CA 94301<br>
+(<i>Current Address:</i> Google Inc., 2400 Bayshore Parkway,<br>
+ Mountain View, CA 94043)<br>
+<tt><a href="mailto:krishna@google.com">krishna@google.com</a></tt></h6>
+
+<h6>
+George A. Mihaila<br> 
+Department of Computer Science<br> University of
+Toronto.<br> 
+<tt><a href="mailto:georgem@cs.toronto.edu">georgem@cs.toronto.edu</a></tt>
+</h6>
+
+<h3>Abstract:</h3>
+
+In response to a query a search engine returns a ranked list of
+documents. If the query is broad (i.e., it matches many documents)
+then the returned list is usually too long to view fully. Studies show
+that users usually look at only the top 10 to 20 results. In this
+paper, we propose a novel ranking scheme for broad queries that places
+the most <i>authoritative</i> pages on the query topic at the top of
+the ranking. Our algorithm operates on a special index of "expert
+documents." These are a subset of the pages on the WWW identified as
+directories of links to non-affiliated sources on specific topics.
+Results are ranked based on the match between the query and relevant
+descriptive text for hyperlinks on expert pages pointing to a given
+result page. We present a prototype search engine that implements our
+ranking scheme and discuss its performance. With a relatively small
+(2.5 million page) expert index, our algorithm was able to perform
+comparably on broad queries with the best of the mainstream search
+engines.
+
+<h3>1 Introduction</h3>
+
+
+When searching the WWW broad queries tend to produce a large result
+set. This set is hard to rank based on content alone, since the
+quality and "authoritativeness" of a page (namely, <i>a measure of how
+authoritative the page is on the subject</i>) cannot be assessed
+solely by analyzing its content. In traditional information retrieval
+we make the assumption that the articles in the corpus originate from
+a reputable source and all words found in an article were intended for
+the reader. These assumptions do not hold on the WWW since content is
+authored by sources of varying quality and words are often added
+indiscriminately to boost the page's ranking. For example, some pages
+are created to purposefully mislead search engines, and are known
+popularly as "spam" pages. The most virulent of spam techniques
+involves deliberately returning someone else's popular page to search
+engine robots instead of the actual page, to steal their traffic. Even
+when there is no intention to mislead search engines, the WWW tends to
+be crowded with information on topics popular with users.
+Consequently, for broad queries keyword matching seems inadequate.
+<p>Prior approaches that have used content analysis to rank broad
+queries on the WWW cannot distinguish between authoritative and
+non-authoritative pages (e.g., they fail to detect spam pages). Hence
+the ranking tends to be poor and search services have turned to other
+sources of information besides content to rank results. We next
+describe some of these ranking strategies, followed by our new
+approach to authoritative ranking - which we call <i>Hilltop</i>.
+
+</p><h4>1.1 Related Work</h4>
+
+
+Three approaches to improve the authoritativeness of ranked results
+have been taken in the past: <p><b>Ranking Based on Human
+Classification:</b> Human editors have been used by companies such as
+<a href="http://www.yahoo.com/">Yahoo!</a> and <a href="http://www.miningco.com/">Mining Company</a> to manually
+associate a set of categories and keywords with a subset of documents
+on the web. These are then matched against the user's query to return
+valid matches. The trouble with this approach is that: (a) it is slow
+and can only be applied to a small number of pages, and (b) often the
+keywords and classifications assigned by the human judges are
+inadequate or incomplete. Given the rate at which the WWW is growing
+and the wide variation in queries this is not a comprehensive
+solution.
+
+</p><p><b>Ranking Based on Usage Information:</b> Some services such as <a href="http://www.directhit.com/">DirectHit</a> collect information on:
+(a) the queries individual users submit to search services and (b) the
+pages they look at subsequently and the time spent on each page. This
+information is used to return pages that <i>most</i> users visit after
+deploying the given query. For this technique to succeed a large
+amount of data needs to be collected for each query. Thus, the
+potential set of queries on which this technique applies is small.
+Also, this technique is open to spamming.
+
+</p><p><b>Ranking Based on Connectivity:</b> This approach involves
+analyzing the hyperlinks between pages on the web on the assumption
+that: (a) pages on the topic link to each other, and (b) authoritative
+pages tend to point to other authoritative pages.
+
+</p><p><i>PageRank</i> [Page et al 98] is an algorithm to rank pages based
+on assumption <i>b</i>. It computes a query-independent authority
+score for every page on the Web and uses this score to rank the result
+set. Since <i>PageRank</i> is query-independent it cannot by itself
+distinguish between pages that are authoritative in general and pages
+that are authoritative on the query topic. In particular a web-site
+that is authoritative in general <i>may</i> contain a page that
+matches a certain query but is not an authority on the topic of the
+query. In particular, such a page may not be considered valuable
+within the community of users who author pages on the topic of the
+query.
+
+</p><p>An alternative to <i>PageRank</i> is <i>Topic Distillation</i>
+[Kleinberg 97, Chakrabarti et al 98, Bharat et al 98, Chakrabarti et
+al 99]. Topic distillation first computes a query specific subgraph of
+the WWW. This is done by including pages on the query topic in the
+graph and ignoring pages not on the topic. Then the algorithm computes
+a score for every page in the subgraph based on hyperlink
+connectivity: every page is given an authority score. This score is
+computed by summing the weights of all incoming links to the page. For
+each such reference, its weight is computed by evaluating how good a
+source of links the referring page is. Unlike <i>PageRank</i>,
+<i>Topic Distillation</i> is only applicable to broad queries, since
+it requires the presence of a community of pages on the topic.
+
+</p><p>A problem with <i>Topic Distillation</i> is that computing the
+subgraph of the WWW which is on the query topic is hard to do in
+real-time. In the ideal case every page on the WWW that deals with the
+query topic would need to be considered. In practice an approximation
+is used. A preliminary ranking for the query is done with content
+analysis. The top ranked result pages for the query are selected. This
+creates a <i>selected set</i>. Then, some of the pages within one or
+two links from the selected set are also added to the selected set if
+they are on the query topic. This approach can fail because it is
+dependent on the comprehensiveness of the selected set for success. A
+highly relevant and authoritative page may be omitted from the ranking
+by this scheme if it either did not appear in the initial selected
+set, or some of the pages pointing to it were not added to the
+selected set. A "focused crawling" procedure to crawl the entire web
+to find the complete subgraph on the query's topic has been proposed
+[Chakrabarti et al 99] but this is too slow for online searching.
+Also, the overhead in computing the full subgraph for the query is not
+warranted since users only care about the top ranked results.
+
+</p><h4>1.2 Hilltop Algorithm Overview</h4>
+
+
+Our approach is based on the same assumptions as the other
+connectivity algorithms, namely that the number and quality of the
+sources referring to a page are a good measure of the page's quality.
+The key difference consists in the fact that we are only considering
+"expert" sources - pages that have been created with the specific
+purpose of directing people towards resources. In response to a query,
+we first compute a list of the most relevant experts on the query
+topic. Then, we identify relevant links within the selected set of
+experts, and follow them to identify target web pages. The targets are
+then ranked according to the number and relevance of non-affiliated
+experts that point to them. Thus, the score of a target page reflects
+the collective opinion of the best independent experts on the query
+topic. When such a pool of experts is not available, Hilltop provides
+no results. Thus, Hilltop is tuned for result accuracy and not query
+coverage.
+
+<p>Our algorithm consists of two broad phases:
+
+</p><p><b>(i) Expert Lookup</b>
+
+</p><p>We define an expert page as a page that is about a certain topic
+and has links to many non-affiliated pages on that topic. Two pages
+are non-affiliated conceptually if they are authored by authors from
+non-affiliated organizations. In a pre-processing step, a subset of
+the pages crawled by a search engine are identified as experts. In our
+experiment we classified 2.5 million of the 140 million or so pages in
+AltaVista's index to be experts. The pages in this subset are indexed
+in a special inverted index.
+
+</p><p>Given an input query, a lookup is done on the expert-index to find
+and rank matching expert pages. This phase computes the best expert
+pages on the query topic as well as associated match information.
+
+</p><p><b>(ii) Target Ranking</b>
+
+</p><p>We believe a page is an authority on the query topic if and only if
+some of the best experts on the query topic point to it. Of course in
+practice some expert pages may be experts on a broader or related
+topic. If so, only a subset of the hyperlinks on the expert page may
+be relevant. In such cases the links being considered have to be
+carefully chosen to ensure that their qualifying text matches the
+query. By combining relevant out-links from many experts on the query
+topic we can find the pages that are most highly regarded by the
+community of pages related to the query topic. This is the basis of
+the high relevance that our algorithm delivers.
+
+</p><p>Given the top ranked matching expert-pages and associated match
+information, we select a subset of the hyperlinks within the
+expert-pages. Specifically, we select links that we know to have all
+the query terms associated with them. This implies that the link
+matches the query. With further connectivity analysis on the selected
+links we identify a subset of their targets as the top-ranked pages on
+the query topic. The targets we identify are those that are linked to
+by <i>at least two</i> non-affiliated expert pages on the topic. The
+targets are ranked by a ranking score which is computed by combining
+the scores of the experts pointing to the target.
+
+</p><h4>1.3 Roadmap</h4>
+
+
+The rest of the paper is organized as follows: Section 2 describes the
+selection and indexing of expert documents; Section 3 provides a
+detailed description of the ranking scheme used in query processing;
+Section 4 presents a user-based evaluation of our prototype
+implementation; and Section 5 concludes the paper.
+
+<h3>2 Expert Documents</h3>
+
+
+Broad subjects are well represented on the Web and as such are also
+likely to have numerous human-generated lists of resources. There is
+value for the individual or organization that creates resource lists
+on specific topics since this boosts their popularity and influence
+within the community interested in the topic. The authors of these
+lists thus have an incentive to make their lists as comprehensive and
+up to date as possible. We regard these links as recommendations, and
+the pages that contain them, as experts. The problem is, how can we
+distinguish an expert from other types of pages? In other words
+<i>what makes a page an expert</i>? We felt than an expert page needs
+to be objective and diverse: that is, its recommendations should be
+unbiased and point to numerous <i>non-affiliated</i> pages on the
+subject. Therefore, in order to find the experts, we needed to detect
+when two sites belong to the same or related organizations.
+
+<h4>2.1 Detecting Host Affiliation</h4>
+
+We define two hosts as affiliated if one or both of the following is true:
+<ul>
+<li>
+They share the same first 3 octets of the IP address.</li>
+
+<li>
+The rightmost non-generic token in the hostname is the same.</li>
+</ul>
+
+
+<p>
+We consider tokens to be substrings of the hostname delimited by "."
+(period). A suffix of the hostname is considered generic if it is a
+sequence of tokens that occur in a large number of distinct hosts.
+E.g., ".com" and ".co.uk" are domain names that occur in a large
+number of hosts and are hence generic suffixes. Given two hosts, if
+the generic suffix in each case is removed and the subsequent
+right-most token is the same, we consider them to be affiliated.
+
+</p><p>E.g., in comparing "www.ibm.com" and "ibm.co.mx" we ignore the
+generic suffixes ".com" and ".co.mx" respectively. The resulting
+rightmost token is "ibm", which is the same in both cases. Hence they
+are considered to be affiliated. Optionally, we could require the
+generic suffix to be the same in both cases.
+
+</p><p>The affiliation relation is transitive: if A and B are affiliated
+and B and C are affiliated then we take A and C to be affiliated even
+if there is no direct evidence of the fact. In practice some
+non-affiliated hosts may be classified as affiliated, but that is
+acceptable since this relation is intended to be conservative.
+
+</p><p>In a preprocessing step we construct a host-affiliation lookup.
+Using a union-find algorithm we group hosts, that either share the
+same rightmost non-generic suffix or have an IP address in common,
+into sets. Every set is given a unique identifier (e.g., the host with
+the lexicographically lowest hostname). The host-affiliation lookup
+maps every host to its set identifier or to itself (when there is no
+set). This is used to compare hosts. If the lookup maps two hosts to
+the same value then they are affiliated; otherwise they are
+non-affiliated.
+
+</p><h4>2.2 Selecting the Experts</h4>
+
+
+In this step we process a search engine's database of pages (we used
+AltaVista's crawl from April 1999) and select a subset of pages which
+we consider to be good sources of links on specific topics, albeit
+unknown. This is done as follows:
+
+<p>Considering all pages with out-degree greater than a threshold,
+<i>k</i> (e.g., k=5) we test to see if these URLs point to <i>k</i>
+distinct <i>non-affiliated</i> hosts. Every such page is considered an
+expert page.
+
+</p><p>If a broad classification (such as <i>Arts</i>, <i>Science</i>,
+<i>Sports</i> etc.) is known for every page in the search engine
+database then we can additionally require that most of the <i>k</i>
+non-affiliated URLs discovered in the previous step point to pages
+that share the same broad classification. This allows us to
+distinguish between random collections of links and resource
+directories. Other properties of the page such as regularity in
+formatting can be used as well.
+
+</p><h4>2.3 Indexing the Experts</h4>
+
+To locate expert pages that match user queries we create an inverted
+index to map keywords to experts on which they occur. In doing so we
+only index text contained within "key phrases" of the expert. A key
+phrase is a piece of text that qualifies one or more URLs in the page.
+Every key phrase has a scope within the document text. URLs located
+within the scope of a phrase are said to be "qualified" by it. For
+example, the title, headings (e.g., text within a pair of <tt>&lt;H1&gt;
+&lt;/H1&gt;</tt> tags) and anchor text within the expert page are
+considered key phrases. The title has a scope that qualifies all URLs
+in the document. A heading's scope qualifies all URLs until the next
+heading of the same or greater importance. An anchor's scope only
+extends over the URL it is associated with.
+
+<p>The inverted index is organized as a list of match positions within
+experts. Each match position corresponds to an occurrence of a certain
+keyword within a key phrase of a certain expert page. All match
+positions for a given expert occur in sequence for a given keyword. At
+every match position we also store:
+</p><ol type="i">
+<li>
+An identifier to identify the phrase uniquely within the document</li>
+
+<li>
+A code to denote the kind of phrase it is (title, heading or anchor)</li>
+
+<li>
+The offset of the word within the phrase.</li>
+</ol>
+In addition, for every expert we maintain the list of URLs within it
+(as indexes into a global list of URLs) and for each URL we maintain
+the identifiers of the key phrases that qualify it.
+
+<p>To avoid giving long key phrases an advantage, the number of keywords
+within any key phrase is limited (e.g., to 32).
+
+</p><h3>3 Query Processing</h3>
+
+In response to a user query, we first determine a list of <i>N</i>
+experts that are the most relevant for that query. E.g. <i>N</i> = 200
+in our experiment. Then, we rank results by selectively following the
+relevant links from these experts and assigning an authority score to
+each such page. In this section we describe how the expert and
+authority scores are computed.
+
+<h4>3.1 Computing the Expert Score</h4>
+
+For an expert to be useful in response to a query, the minimum
+requirement is that there is at least one URL which contains all the
+query keywords in the key phrases that <i>qualify</i> it. A fast
+approximation is to require all query keywords to occur in the
+document. Furthermore, we assign to each candidate expert a score
+reflecting the number and importance of the key phrases that contain
+the query keywords, as well as the degree to which these phrases match
+the query.  
+
+<p>Thus, we compute the score of an expert as as a 3-tuple of the form
+(<i>S</i><sub>0</sub>, <i>S</i><sub>1</sub>, <i>S</i><sub>2</sub>).
+Let <i>k</i> be the number of terms in the input query, <i>q</i>. The
+component <i>S<sub>i</sub></i> of the score is computed by considering
+only key phrases that contain precisely <i>k - i</i> of the query
+terms. E.g., <i>S<sub>0</sub></i> is the score computed from phrases
+containing all the query terms.
+</p><center>
+
+<p><i>S</i><sub>i</sub> = SUM<sub>{key phrases <i>p</i> with <i>k - i</i>
+query terms}</sub> <i>LevelScore</i>(<i>p</i>) * <i>FullnessFactor</i>(<i>p,
+q</i>)</p></center>
+
+
+<p><i>LevelScore</i>(<i>p</i>) is a score assigned to the phrase by virtue
+of the type of phrase it is. For example, in our implementation we use
+a <i>LevelScore</i> of 16 for title phrases, 6 for headings and 1 for anchor
+text. This is based on the assumption that the title text is more useful
+than the heading text, which is more useful than an anchor text match in
+determining what the expert page is about.
+
+</p><p><i>FullnessFactor</i>(<i>p, q</i>) is a measure of the number of
+terms in <i>p</i> covered by the terms in <i>q</i>. Let <i>plen</i> be
+the length of <i>p</i>. Let <i>m</i> be the number of terms in
+<i>p</i> which are not in <i>q</i> (i.e., surplus terms in the
+phrase). Then, <i>FullnessFactor</i>(<i>p, q</i>) is computed as
+follows:
+</p><ul>
+<li>
+If m &lt;= 2, <i>FullnessFactor</i>(<i>p, q</i>) = 1</li>
+
+<li>
+If m &gt; 2, <i>FullnessFactor</i>(<i>p, q</i>) = 1 - (<i>m</i> - 2) / <i>plen</i></li>
+</ul>
+Our goal is to prefer experts that match all of the query keywords over
+experts that match all but one of the keywords, and so on. Hence we rank
+experts first by S<sub>0</sub>. We break ties by S<sub>1</sub> and further
+ties by S<sub>2</sub>. The score of each expert is converted to a scalar
+by the weighted summation of the three components:
+<center>
+
+<p><i>Expert_Score</i> = 2<sup>32</sup> * S<sub>0</sub> + 2<sup>16</sup>
+* S<sub>1</sub> + S<sub>2</sub>.</p></center>
+
+
+<p><br>
+
+</p><h4>3.2 Computing the Target Score</h4>
+
+We consider the top <i>N</i> experts by the ranking from the previous step
+(e.g., the top 200) and examine the pages they point to. These are called
+<i>targets</i>.
+It is from this set of targets that we select top ranked documents. For
+a target to be considered it must be pointed to by at least 2 experts on
+hosts that are mutually non-affiliated and are not affiliated to the target.
+For all targets that qualify we compute a target score reflecting both 
+the number and relevance of the experts pointing to it and the
+relevance of the phrases qualifying the links.
+
+<p>The target score <i>T</i> is computed in three steps:
+</p><ol>
+<li>
+For every expert <i>E</i> that points to target <i>T</i> we draw a directed
+edge (<i>E,T</i>). Consider the following "qualification" relationship
+between key phrases and edges:</li>
+
+<ul>
+<li>
+The title phrase <i>qualifies</i> all edges coming out of the expert</li>
+
+<li>
+A heading <i>qualifies</i> all edges whose corresponding hyperlinks occur
+in the document <i>after</i> the given heading and <i>before</i> the next
+heading of equal or greater importance.</li>
+
+<li>
+A hyperlink's anchor text <i>qualifies</i> the edge corresponding to the
+hyperlink.</li>
+</ul>
+<br>
+For each query keyword <i>w</i>, let <i>occ</i>(<i>w, T</i>) be the number
+of distinct key phrases in <i>E</i> that contain <i>w</i> and <i>qualify</i>
+the edge (<i>E,T</i>). We define an "edge score" for the edge (<i>E,T</i>)
+represented by <i>Edge_Score</i>(<i>E,T</i>), which is computed thus:
+<ul>
+<li>
+If <i>occ</i>(<i>w, T</i>) is 0 for any query keyword then the <i>Edge_Score</i>(<i>E,T</i>)
+= 0.</li>
+
+<li>
+Otherwise, <i>Edge_Score</i>(<i>E,T</i>) = <i>Expert_Score</i>(<i>E</i>)
+* Sum<sub>{query keywords <i>w</i>}</sub> <i>occ</i>(<i>w, T</i>)</li>
+</ul>
+<br>
+
+<li>
+We next check for affiliations between expert pages that point to the same
+target. If two affiliated experts have edges to the same target <i>T</i>,
+we then discard one of the two edges. Specifically, we discard the edge
+which has the lower <i>Edge_Score</i> of the two.</li>
+
+<li>
+To compute the <i>Target_Score</i> of a target we sum the <i>Edge_Score</i>s
+of all edges incident on it.</li>
+</ol>
+The list of targets is ranked by <i>Target_Score</i>. Optionally, this
+list can be filtered by testing if the query keywords are present in the
+targets. Optionally, we can match the query keywords against each target
+to compute a <i>Match_Score</i> using content analysis, and combine the
+<i>Target_Score</i>
+with the <i>Match_Score</i> before ranking the targets.
+<center>
+
+<p><img src="Hilltop%20%20A%20Search%20Engine%20based%20on%20Expert%20Documents_files/jobs.gif" height="553" border="2" width="409"></p></center>
+
+<center>
+<h6 class="CAPTION">
+Figure 1. Hilltop Ranking for the Query: "jobs"
+</h6>
+</center>
+
+<h3>4 Evaluation</h3>
+
+In order to evaluate our prototype search engine, we conducted two user
+studies aiming to estimate the recall and precision. Both experiments also
+involved three other search engines, namely <i>AltaVista</i>, <i>DirectHit</i>
+and <i>Google</i>, for comparison and were done in August 1999. Note that
+the current rankings by these engines may differ.
+
+<h4>4.1 Locating Specific Popular Targets</h4>
+
+For the first experiment we asked seven volunteers to suggest the home
+pages of ten organizations of their choice (companies, universities, stores,
+etc.). Some of the queries are reproduced in the table below:
+<br>
+<center><br><table border="">
+<caption>
+<center></center></caption><tbody>
+</tbody>
+
+
+<tbody><tr>
+<td>Alpha Phi Omega</td>
+
+<td>Best Buy</td>
+
+<td>Digital</td>
+
+<td>Disneyland</td>
+</tr>
+
+<tr>
+<td>Dollar Bank</td>
+
+<td>Grouplens</td>
+
+<td>INRIA</td>
+
+<td>Keebler</td>
+</tr>
+
+<tr>
+<td>Mountain View Public Library</td>
+
+<td>Macy's</td>
+
+<td>Minneapolis City Pages</td>
+
+<td>Moscow Aviation Institute</td>
+</tr>
+
+<tr>
+<td>MENSA</td>
+
+<td>OCDE</td>
+
+<td>ONU</td>
+
+<td>Pittsburg Steelers</td>
+</tr>
+
+<tr>
+<td>Pizza Hut</td>
+
+<td>Rice University</td>
+
+<td>SONY</td>
+
+<td>Safeway</td>
+</tr>
+
+<tr>
+<td>Stanford Shopping Center</td>
+
+<td>Trek Bicycle</td>
+
+<td>USTA</td>
+
+<td>Vanguard Investments</td>
+</tr>
+</tbody></table></center>
+
+
+<p>The same query was sent to all four search engines. We assume that there
+is exactly one home page in each case. Every time the home page was found
+within the first ten results, its rank was recorded. Figure 2 summarizes
+the average recall for the ranks 1 to 10 for each of the four engines:
+our engine <i>Hilltop</i> (HT), <i>Google</i> (GG), <i>AltaVista</i> (AV),
+and <i>DirectHit</i> (DH). Average recall at rank k for this experiment
+is the probability of finding the desired home page within the first k
+results.
+</p><center>
+
+<p><img src="Hilltop%20%20A%20Search%20Engine%20based%20on%20Expert%20Documents_files/recall.gif"></p></center>
+
+<center>
+<h6 class="CAPTION">
+Figure 2. Average Recall vs. Rank
+</h6></center>
+
+
+<p><br>Our engine performed well on these queries. Thus, for about 87%
+of the queries, <i>Hilltop</i> returned the desired page as the first result,
+comparable with <i>Google</i> at 80% of the queries, while <i>DirectHit</i>
+and <i>AltaVista</i> succeeded at rank 1 only in 43% and 20% of the cases,
+respectively. As we look at more results, the average recall increases
+to 100% for <i>Google</i>, 97% for <i>Hilltop</i>, 83% for <i>DirectHit</i>,
+and 30% for <i>AltaVista</i>.
+
+</p><h4>4.2 Gathering Relevant Pages</h4>
+
+In order to estimate Hilltop's ability to generate a good first page of
+results for broad queries, we asked our volunteers to think of broad topics
+(i.e., topics for which it is likely that many good pages exist) and formulate
+queries. We collected 25 such queries, listed below:
+<br>
+<center><br><table border="">
+<caption>
+<center></center></caption><tbody>
+</tbody>
+
+
+<tbody><tr>
+<td>Aerosmith</td>
+
+<td>Amsterdam</td>
+
+<td>backgrounds</td>
+
+<td>chess</td>
+
+<td>dictionary</td>
+</tr>
+
+<tr>
+<td>fashion</td>
+
+<td>freeware</td>
+
+<td>FTP search</td>
+
+<td>Godzilla</td>
+
+<td>Grand Theft Auto</td>
+</tr>
+
+<tr>
+<td>greeting cards</td>
+
+<td>Jennifer Love Hewitt</td>
+
+<td>Las Vegas</td>
+
+<td>Louvre</td>
+
+<td>Madonna</td>
+</tr>
+
+<tr>
+<td>MEDLINE</td>
+
+<td>MIDI</td>
+
+<td>newspapers</td>
+
+<td>Paris</td>
+
+<td>people search</td>
+</tr>
+
+<tr>
+<td>real audio</td>
+
+<td>software</td>
+
+<td>Starr report</td>
+
+<td>tennis</td>
+
+<td>UFO</td>
+</tr>
+</tbody></table></center>
+
+
+<p>We then used a script to submit each query to all four search
+engines and collect the top 10 results from each engine, recording for
+each result the URL, the rank, and the engine that found it. We needed
+to determine which of the results were relevant in an unbiased manner.
+For each query we generated the list of unique URLs in the union of
+the results from all engines. This list was then presented to a judge
+in a random order, without any information about the ranks of page or
+their originating engine. The judge rated each page for relevance to
+the given query on a binary scale (1 = "good page on the topic", 0 =
+"not relevant or not found"). Then, another script combined these
+ratings with the information about provenance and rank and computed
+the average precision at rank <i>k</i> (for <i>k</i> = 1, 5, and 10).
+The results are summarized in Figure 3.
+</p><center>
+
+<p><img src="Hilltop%20%20A%20Search%20Engine%20based%20on%20Expert%20Documents_files/prec.gif"></p></center>
+
+<center>
+<h6 class="CAPTION">
+Figure 3. Average Precision at Rank <i>k</i>
+</h6>
+</center>
+
+
+<p>These results indicate that for broad subjects our engine returns a
+large percentage of highly relevant pages among the ten best ranked
+pages, comparable with <i>Google</i> and <i>DirectHit</i>, and better
+than <i>AltaVista</i>. At rank 1 both <i>Hilltop</i> and
+<i>DirectHit</i> have an average precision of 0.92. Average precision
+at 10 for <i>Hilltop</i> was 0.77, roughly equal to the best search
+engine, namely <i>Google</i>, with a precision of 0.79 at rank 10.
+
+</p><h3>5 Conclusions</h3>
+
+We described a new ranking algorithm for broad queries called
+<i>Hilltop</i> and the implementation of a search engine based on it.
+Given a broad query <i>Hilltop</i> generates a list of target pages
+which are likely to be very authoritative pages on the topic of the
+query. This is by virtue of the fact that they are highly valued by
+pages on the WWW which address the topic of the query. In computing
+the usefulness of a target page from the hyperlinks pointing to it, we
+only consider links originating from pages that seem to be experts.
+Experts in our definition are directories of links pointing to many
+non-affiliated sites. This is an indication that these pages were
+created for the purpose of directing users to resources, and hence we
+regard their opinion as valuable. Additionally, in computing the level
+of relevance, we require a match between the query and the text on the
+expert page which qualifies the hyperlink being considered. This
+ensures that hyperlinks being considered are on the query topic. For
+further accuracy, we require that at least 2 non-affiliated experts
+point to the returned page with relevant qualifying text describing
+their linkage. The result of the steps described above is to generate
+a listing of pages that are highly relevant to the user's query and of
+high quality.
+
+<p><i>Hilltop</i> most resembles the connectivity techniques,
+<i>PageRank</i> and <i>Topic Distillation</i>. Unlike <i>PageRank</i>
+our technique is a dynamic one and considers connectivity in a graph
+specifically about the query topic. Hence, it can evaluate relevance
+of content from the point of view of the community of authors
+interested in the query topic. Unlike <i>Topic Distillation</i> we
+enumerate and consider all good experts on the subject and
+correspondingly all good target pages on the subject. In order to find
+the most relevant experts we use a custom keyword-based approach,
+focusing only on the text that best captures the domain of expertise
+(the document title, section headings and hyperlink anchor-text).
+Then, in following links, we boost the score of those targets whose
+qualifying text best matches the query. Thus, by combining content and
+connectivity analysis, we are both more comprehensive and more
+precise. An important property is that unlike <i>Topic
+Distillation</i> approaches, we can <i>prove</i> that if a page does
+not appear in our output it lacks the connectivity support to justify
+its inclusion. Thus we are less prone to omit good pages on the topic,
+which is a problem with <i>Topic Distillation</i> systems. Also, since
+we use an index optimized to finding experts, our implementation uses
+less data than <i>Topic Distillation</i> and is therefore faster.
+
+</p><p>The indexing of anchor-text was first suggested in <i>WWW Worm
+</i>[McBryan 94]. In some <i>Topic Distillation</i> systems such as
+<i>Clever</i> [Chakrabarti et al 1998] and in the <i>Google </i>search
+engine [Page et al 98] anchor-text is considered in evaluating a
+link's relevance. We generalize this to other forms of text that are
+seen to "qualify" a hyperlink at its source, and include headings and
+title-text as well. Also, unlike <i>Topic Distillation</i> systems, we
+evaluate experts on their content match to the user's query, rather
+than on their linkage to good target pages. This prevents the scores
+of "niche experts" (i.e., experts that point to new or relative poorly
+connected pages) from being driven to zero, as is often the case in
+<i>Topic Distillation</i> algorithms.
+
+</p><p>In a blind evaluation we found that <i>Hilltop</i> delivers a high
+level of relevance given broad queries, and performs comparably to the
+best of the commercial search engines tested.
+
+</p><h3>6 References</h3>
+
+
+
+<b>[Kleinberg 97]</b> 
+J. Kleinberg. Authoritative sources in a hyperlinked environment.
+To appear in the <i>Journal of the ACM</i>, 1999. Also appears as <a href="http://domino.watson.ibm.com/library/cyberdig.nsf/a3807c5b4823c53f85256561006324be/4e40593d728e23f78525659300729f81?OpenDocument">IBM
+Research Report RJ 10076</a>, May 1997. <a href="http://www.cs.cornell.edu/home/kleinber/auth.ps">http://www.cs.cornell.edu/home/kleinber/auth.ps</a>
+
+<br><br>
+
+
+<b>[Chakrabarti et al 98]</b> 
+S. Chakrabarti, B. Dom, D. Gibson, J. Kleinberg,
+P. Raghavan, and S. Rajagopalan. Automatic Resource Compilation by Analyzing
+Hyperlink Structure and Associated Text. Proceedings of the <i>7th World-Wide
+Web conference</i>, 1998. <a href="http://decweb.ethz.ch/WWW7/1898/com1898.htm">http://decweb.ethz.ch/WWW7/1898/com1898.htm</a>
+
+<br><br>
+
+
+<b>[Chakrabarti et al 99]</b> 
+S. Chakrabarti, M. van den Berg and B. Dom. Focused
+crawling: A new approach to topic-specific Web resource discovery. In the
+<a href="http://www8.org/">8th
+World Wide Web Conference</a>, Toronto, May 1999. <a href="http://www.cs.berkeley.edu/%7Esoumen/doc/www99focus/html/">http://www.cs.berkeley.edu/~soumen/doc/www99focus/html/</a>
+
+<br><br>
+
+
+<b>[Bharat et al 98]</b>
+ K. Bharat and M. Henzinger. Improved algorithms for
+topic distillation in a hyperlinked environment. In <i>SIGIR Conference
+on Research and Development in Information Retrieval</i>, volume 21. ACM,
+1998. <a href="ftp://ftp.digital.com/pub/DEC/SRC/publications/monika/sigir98.pdf">ftp://ftp.digital.com/pub/DEC/SRC/publications/monika/sigir98.pdf</a>.
+<br><br>
+
+
+<b>[Page et al 98]</b>
+ S. Brin and L. Page. The anatomy of a large-scale hypertextual
+web search engine. In <i>WWW Conference</i>, volume 7, 1998. <a href="http://www7.scu.edu.au/programme/fullpapers/1921/com1921.htm">http://www7.scu.edu.au/programme/fullpapers/1921/com1921.htm</a>
+
+<br><br>
+
+
+<b>[McBryan 94]</b> Oliver A. McBryan. GENVL and WWWW: Tools for Taming the
+Web.<i> First International Conference on the World Wide Web. </i>CERN,
+Geneva (Switzerland), May 25-26-27 1994. <a href="http://www.cs.colorado.edu/home/mcbryan/mypapers/www94.ps">http://www.cs.colorado.edu/home/mcbryan/mypapers/www94.ps</a>
+
+<br><br>
+
+<hr>
+
+<table border="0" cellpadding="0" cellspacing="0">
+<tbody><tr>
+<td valign="TOP"><a name="bio1"></a><img src="Hilltop%20%20A%20Search%20Engine%20based%20on%20Expert%20Documents_files/bharat.jpg" height="144" align="LEFT" width="108" hspace="10"><a href="http://www.research.digital.com/SRC/staff/bharat/bio.html">
+
+<b>Krishna Bharat</b></a> is a member of the research staff at Google Inc.
+in Mountain View, California. Formerly he was at Compaq Computer
+Corporation's Systems Research Center, which is where the research
+described here was done. His research interests include Web content
+discovery and retrieval, user interface issues in Web search and task
+automation, and relevance assessments on the Web. He received his Ph.D.
+in Computer Science from Georgia Institute of Technology in 1996,
+where he worked on tool and infrastructure support for building
+distributed user interface applications.
+
+</td></tr> 
+
+<tr><td>&nbsp;</td></tr> 
+
+<tr>
+<td valign="TOP"><a name="bio2"></a><img src="Hilltop%20%20A%20Search%20Engine%20based%20on%20Expert%20Documents_files/mihaila.gif" height="144" align="LEFT" width="108" hspace="10"><a href="http://www.cs.toronto.edu/%7Egeorgem"> <b>George Andrei
+Mihaila</b></a> is a Ph.D. student in the Department of Computer
+Science at the University of Toronto. During the summer of 1999 he was
+an intern at Compaq Computer Corporation's Systems Research Center,
+which is where this research was done. His research interests
+include query languages, information discovery tools, Web-based
+information systems and database integration. He received his M.Sc. in
+Computer Science from the University of Toronto in 1996 with the
+thesis <i>WebSQL - an SQL-like Query Language for the World Wide
+Web</i>.
+</td>
+</tr>
+
+</tbody></table>
+
+
+
+
+
+</body></html>

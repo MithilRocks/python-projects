@@ -1,0 +1,3 @@
+import crawler_prog
+searcher=crawler_prog.searcher('search.db')
+webpages=searcher.webpages('first by')

@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<!-- saved from url=(0074)http://www.pricesparrow.com/conduit/mam?ctid=CT3286379~45_0&ismanaged=true -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>PriceSparrow</title>
+    
+    <script type="text/javascript" async="" src="ga.js"></script><script type="text/javascript" async="" src="ga.js"></script><script src="jquery.min(1).js"></script>
+    <script type="text/javascript" src="appApi.js"></script><div id="__conduitCustomDivCT3286379" style="display:none">{"data":"{\"errorMessage\":\"Permission denied (getSearchTerm).\",\"errorCode\":100}","uniqueID":0.6417747591622174,"msgSender":"platform.search.getTerm","fromBCView":true}_BCAPI_CMD_SEP_</div></head><body style="margin-top: 0px;"><embed id="pluginObj" type="ConduitChromeApi" style="height:0; visibility: hidden; position: fixed;">
+    <script type="text/javascript">
+var BASE_URL = 'http://conduit.ciuvo.com';
+var SECURE_STATIC_URL = 'https://secure.ciuvo.com';
+var STATIC_URL = 'http://static.ciuvo.com';
+var PREFIX = "PriceSparrow";
+var STATUS_ENABLED = "enabled";
+var STATUS_DISABLED = "disabled";
+var PARTNER_TAG = "conduit";
+var VERSION = "1.4.9";
+var BLACKLIST = [ new RegExp("https?://(\w+\.)?google\..{2,3}") ];
+var popup_toggle = false;
+var REMOVE_SCRIPT = "(function() {var bar = document.getElementById('" + PARTNER_TAG + "-toolbar');" +
+"if ( bar && typeof bar !== 'undefined') { bar.parentNode.removeChild(bar); }" +
+"})();";
+/* ********************************************************* *
+ * UUID Generation                                           *
+ * ********************************************************* *
+ *
+ * Create and return a "version 4" RFC-4122 UUID string.
+ *
+ * randomUUID.js - Version 1.0
+ *
+ * Copyright 2008, Robert Kieffer
+ *
+ * This software is made available under the terms of the Open Software
+ * License v3.0
+ * (available here: http://www.opensource.org/licenses/osl-3.0.php )
+ *
+ * The latest version of this file can be found at:
+ * http://www.broofa.com/Tools/randomUUID.js
+ *
+ * For more information, or to comment on this, please go to:
+ * http://www.broofa.com/blog/?p=151
+ */
+var randomUUID = function() {
+    var s = [], itoh = ['0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'];
+
+    // Make array of random hex digits. The UUID only has 32 digits in it,
+    // but we allocate an extra items to make room for the '-'s we'll be
+    // inserting.
+    for (var i = 0; i < 36; i++)
+        s[i] = Math.floor(Math.random() * 0x10);
+
+    // Conform to RFC-4122, section 4.4
+    s[14] = 4; // Set 4 high bits of time_high field to version
+    s[19] = (s[19] & 0x3) | 0x8; // Specify 2 high bits of clock sequence
+
+    // Convert to hex chars
+    for (var i = 0; i < 36; i++)
+        s[i] = itoh[s[i]];
+
+    // Insert '-'s
+    s[8] = s[13] = s[18] = s[23] = '-';
+    return s.join('');
+};
+
+var mamHelper = (function () {
+    var version = "1.4";
+
+    /** Private variables **/
+    var isChrome = (navigator.userAgent.toLowerCase().indexOf('chrome') > -1);
+    var strUtilObjectInjection = null;
+         
+    function injectMamObject(sNamespace, tab) {
+        if (!strUtilObjectInjection) {
+            var strPageObject = '(function(){if(window.<<APPSCOPE>>&&window.<<APPSCOPE>>.mam)return;';
+
+            // callback Message communicator
+            strPageObject += getSendCallbackMessageString();
+
+            // Get the toolbar ID
+            strPageObject += function getToolbarId() {
+                return "<<CTID>>";
+            }.toString() + ';';
+
+            // Create\extend the object
+            strPageObject += '' +
+                'window.<<APPSCOPE>>=window.<<APPSCOPE>>||{};' +
+                'window.<<APPSCOPE>>.mam=window.<<APPSCOPE>>.mam||{};' +
+                'window.<<APPSCOPE>>.mam.getToolbarId = getToolbarId;' +
+                'window.<<APPSCOPE>>.mam.sendCallbackMessage = sendCallbackMessage;';
+
+            strPageObject += '})();';
+
+            // Replace Aliases
+            strPageObject = strPageObject.replace(/\<\<APPSCOPE\>\>/gm, sNamespace);
+            strPageObject = strPageObject.replace(/\<\<CTID\>\>/gm, conduit.utils.getToolbarId());
+            // Clean up
+            strPageObject = strPageObject.replace(/\n|\t/gm, "");
+            strPageObject = strPageObject.replace(/\s\s/gm, " ");
+
+            // The current communicator MAM object will work on IE & Firefox.
+            // On chrome, we need to inject the code into the page scope, then
+            // add a postMessage handler on the extension scope to
+            // pass on the callback message
+            if (!isChrome) {
+                strUtilObjectInjection = strPageObject;
+            } else {
+                strPageObject = getInjectCodestring(strPageObject);
+                var strChromeExtensionScopeHandler = getCommunicatorString();
+                strChromeExtensionScopeHandler = strChromeExtensionScopeHandler.replace(/\<\<APPSCOPE\>\>/gm, sNamespace);
+
+                strUtilObjectInjection = strChromeExtensionScopeHandler + strPageObject;
+            }
+        }
+
+        conduit.tabs.executeScript(tab.id, { code:strUtilObjectInjection });
+    }
+    
+    function injectScriptTag(sUrl, tab) {
+        var strScriptTag = '' +
+            '(function(){' +
+            'var h = document.getElementsByTagName("head")[0];' +
+            'var s = document.createElement("script");' +
+            's.type="text/javascript";' +
+            's.src = "' + sUrl + '";' +
+            'h.appendChild(s);' +
+            '})();';
+
+        conduit.tabs.executeScript(tab.id, { code:strScriptTag });
+    }
+    
+    function injectCode(sInjectionCode, tab) {
+        conduit.tabs.executeScript(tab.id, { code:getInjectCodestring(sInjectionCode) });
+    }
+
+    /** GLOBAL KEYS HELPERS
+
+     Use these method to prevent colission of data
+     with other apps.
+     **/
+
+    /** Gets the value of your app's key
+
+     @param sNamespace - the mam object will be created\extended in window[sNamespace].mam
+     @param sKey - key name
+     */
+    function getAppKey(sNamespace, sKey) {
+        var sAppKey = sNamespace + '_' + sKey;
+        return conduit.storage.getKey(sAppKey);
+    }
+
+    /** Stores the value of your app's key
+
+     @param sNamespace - the mam object will be created\extended in window[sNamespace].mam
+     @param sKey - key name
+     @param sKey - key value
+     */
+    function setAppKey(sNamespace, sKey, sValue) {
+        var sAppKey = sNamespace + '_' + sKey;
+        conduit.storage.setKey(sAppKey, sValue);
+    }
+
+    /** PRIVATE FUNCTIONS **/
+
+        // Returns wrapped code in Chrome in order to inject to the page scope
+    function getInjectCodestring(strCode) {
+        var strToInject;
+        if (!isChrome) {
+            strToInject = strCode;
+        } else {
+            strToInject = '' +
+                '(function () {' +
+                'var h = document.getElementsByTagName("head")[0];' +
+                'var t = "' + encodeURIComponent(strCode) + '";' +
+                'var s = document.createElement("script");' +
+                's.type="text/javascript";' +
+                's.innerHTML = decodeURIComponent(t);' +
+                'h.appendChild(s);' +
+                '})();';
+        }
+
+        return strToInject;
+    }
+
+    // returns a callback Message communicator string,
+    // Which overcomes the scoping issue on Chrome
+    function getCommunicatorString() {
+        var strCommunicator = '(function(){';
+        // This function is used to overcome the scoping issue on chrome
+        strCommunicator += function messageResponseHandler(event) {
+            if (typeof event.data === "string") {
+                try {
+                    var data = JSON.parse(event.data);  //No problem using JSON - IE7 doesn't use this method
+                    if (data && data.origin && data.origin === "<<APPSCOPE>>_tb_callback_message") {
+                        EBCallBackMessageReceived(data.msg);
+                    }
+                }
+                catch (e) {
+                }
+            }
+        }.toString() + ';';
+
+
+        var addEvent = (function () {
+            if (document.addEventListener) {
+                return function addEvent(el, type, fn) {
+                    if (el && el.nodeName || el === window) {
+                        el.addEventListener(type, fn, false);
+                    } else if (el && el.length) {
+                        for (var i = 0; i < el.length; i++) {
+                            addEvent(el[i], type, fn);
+                        }
+                    }
+                };
+            } else {
+                return function addEvent(el, type, fn) {
+                    if (el && el.nodeName || el === window) {
+                        el.attachEvent('on' + type, function () {
+                            return fn.call(el, window.event);
+                        });
+                    } else if (el && el.length) {
+                        for (var i = 0; i < el.length; i++) {
+                            addEvent(el[i], type, fn);
+                        }
+                    }
+                };
+            }
+        })();
+
+        strCommunicator += 'var addEvent = ' + addEvent.toString() + ';';
+        strCommunicator += 'addEvent(window, "message", messageResponseHandler);';
+
+        strCommunicator += "})();"
+
+        return strCommunicator;
+    }
+
+    function getSendCallbackMessageString() {
+        if (!isChrome) {
+            return function sendCallbackMessage(sMessage) {
+                EBCallBackMessageReceived(sMessage);
+            }.toString() + ';';
+        } else {
+            return function sendCallbackMessage(sMessage) {
+                window.postMessage(JSON.stringify({origin:"<<APPSCOPE>>_tb_callback_message", msg:sMessage}), "*");
+            }.toString() + ';';
+        }
+    }
+
+    /** RETURNED OBJECT **/
+    return {
+        /** General **/
+        version:version + '',
+
+        /** Injection Helpers **/
+        injection:{
+            injectMamObject:injectMamObject,
+            injectScriptTag:injectScriptTag,
+            injectCode:injectCode
+        },
+
+        /** Global Keys Helpers **/
+        storage:{
+            getAppKey:getAppKey,
+            setAppKey:setAppKey
+        }
+    };
+})();
+var _gaq = _gaq || [];
+var TOOLBAR_ID = conduit.utils.getToolbarId();
+var UUID = conduit.storage.getKey(PREFIX + "Uuid");
+if ( !UUID || UUID == '0'  || UUID == '----' ) {
+    UUID = randomUUID();
+    conduit.storage.setKey(PREFIX + "Uuid", UUID);
+}
+
+
+/* ***************** **************** ****************
+ * Whitelist management class
+ * ***************** **************** ****************/
+var Whitelist = (function() {
+    /** Whitlelist cache **/
+    var WHITELIST = [];
+    var WHITELIST_TIMEOUT = 1000 * 60 * 60 * 24;
+
+    /** @constructor **/
+    var Whitelist = function() {
+    };
+
+    Whitelist.prototype = {
+        /**
+         * Callback function when whitelist was loaded
+         */
+        receive: function( data ) {
+            var domains = data['com.ciuvo.whitelist'];
+            for (var i = 0, len = domains.length; i < len; i++) {
+                var domain_reg = new RegExp(domains[i]);
+                WHITELIST.push(domain_reg);
+            }
+        },
+
+        /**
+         * Wheter the whitelist is loaded or not
+         */
+        is_loaded: function() {
+            return ( typeof WHITELIST !== 'undefined' && WHITELIST.length > 0 );
+        },
+
+        /**
+         * Sends an XDR fetching the whitelisted domains
+         */
+        load: function( globalName ) {
+            if ( !this.is_loaded() ) {
+                var url = BASE_URL + "/api/whitelist?v=" + VERSION + "&tag=" + PARTNER_TAG 
+                          + "&uuid=" + UUID + "&campaign=XC-" + TOOLBAR_ID + "&callback=?";
+                // if the user has not yet activated the app, check if the current domain is white-
+                // listed and we can show the tutorial screen asking for activation
+
+                // no gzip and no browser-cache? using jquery instead!
+                //CrossDomainHttpRequest( this.receive, "GET", url, null, null, null, null);
+                var com = { "ciuvo" : {} };
+                jQuery.support.cors = true;
+                $.ajax({
+                        url: url,
+                        dataType: 'jsonp',
+                        jsonpCallback: globalName + '.receive',
+                        cache: true,
+                        success: function() { },
+                        error: function() { }
+                });
+            }
+        },
+
+        /**
+         * Checking if the document's URL is whitelisted and not blacklisted
+         */
+        check: function( location ) {
+
+            if (!this.is_loaded()) {
+                return false;
+            }
+
+            for (var i = 0, len = WHITELIST.length; i < len; i++) {
+                if (WHITELIST[i].exec( location )) {
+                    return true;
+                }
+            }
+            return false;
+        }
+    };
+
+    return Whitelist;
+})();
+
+
+var whitelist = new Whitelist();
+whitelist.load("whitelist");
+
+
+/* ********************************************************* *
+ * Script Injection                                          *
+ * ********************************************************* *
+ *
+ * Inserts the javascript code to display the toolbar
+ */
+function inject(tab, url, time_passed) {
+    mamHelper.injection.injectMamObject("PricesparrowMAM", tab);
+             var initialized = true;//RetrieveKey( PREFIX + "Firstrun" );
+         var isChrome = navigator.userAgent.toLowerCase().indexOf('chrome') > -1;
+
+         var strScript =
+             "if (typeof _ciuvoprefs === 'undefined') { _ciuvoprefs = {}; }\n" +
+             "if (typeof _ciuvoprefs." + PARTNER_TAG + " === 'undefined') { " +
+             "_ciuvoprefs." + PARTNER_TAG + " = {'campaign': 'XC-" + TOOLBAR_ID + "', "
+                                               + "'init': '"+ (initialized ? '' : 'firstrun-conduit') + "', "
+                                               + "'uuid': '"+ UUID + "'";
+         if ( isChrome ) {
+             try {
+                  if ( GetInfo().context.host == "Toolbar" ) {
+                      //chrome requires and offset of the toolbar
+                      strScript +=  ",'offset': '35'";
+                  }
+             } catch(e) { }
+         }
+
+         strScript += "}; }\n" + 
+             "(function() { " +
+             "var stag = document.createElement('script');" +
+             "stag.type = 'text/javascript'; " +
+             "stag.async = true; " +
+             "stag.id = '" + PARTNER_TAG + "-script'; " +
+             "stag.src = ('https:' == document.location.protocol ? '" +
+                 SECURE_STATIC_URL + "' : '" + STATIC_URL +
+             "') + '/media/bookmarklet/" + PARTNER_TAG + ".min.js';" +
+             "var s=document.getElementsByTagName('body')[0].appendChild(stag);" +
+             "})();"
+
+         strScript = "var bar = document.getElementById('" + PARTNER_TAG + "-toolbar');\n" +
+                     "if (typeof bar === 'undefined' || bar == null) {\n" +
+                     strScript +
+                     "\n}";
+
+    mamHelper.injection.injectCode(strScript, tab);
+}
+
+function injectGA(tab) {
+    _gaq.push(['_setAccount', 'UA-12353595-7']);
+    if (tab && tab.url) { _gaq.push(['_setReferrerOverride', tab.url]); }
+    _gaq.push(['_trackPageview']);
+
+    var ga = document.createElement('script');
+    ga.type = 'text/javascript';
+    ga.async = true;
+    ga.src = ('https:' == document.location.protocol
+        ? 'https://ssl'
+        : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0];
+    s.parentNode.insertBefore(ga, s);
+}
+
+
+/* ***************** **************** ****************
+ * Conduit API callbacks - onDocumentComplete
+ * ***************** **************** ****************
+ *
+ * Will be called when the document is loaded
+ */
+conduit.tabs.onDocumentComplete.addListener(function(tab) {
+    injectGA(tab);
+
+    var time_passed = 0;
+    var wait_for_whitelist = function() {
+        if (whitelist.is_loaded()) {
+            if (whitelist.check(tab.url)) {
+                inject(tab, tab.url, 0);
+            }
+        } else if (time_passed < 10000) {
+            time_passed += 100
+            window.setTimeout(arguments.callee, 100);
+        }
+    }
+    wait_for_whitelist(0);
+});
+
+/* ***************** **************** ****************
+ * Conduit API callbacks - Message Received
+ * ***************** **************** ****************
+ *
+ * listens for messages from the activation bubble
+ */
+conduit.messaging.onRequest.addListener(function(data) {
+    if (data == "popup") {
+        conduit.mam.openWhatsThis();
+    }
+});
+</script>
+
+
+
+
+<script type="text/javascript">var args = [];var eventData = {"url":"http://stackoverflow.com/questions/5890250/on-delete-cascade-in-sqlite3","tabId":"102"};for(var i in eventData){args.push(eventData[i])};if (typeof(EBNavigateComplete)==="function") {EBNavigateComplete.apply(this, args); }</script><script type="text/javascript">var args = [];var eventData = {"url":"http://stackoverflow.com/questions/5890250/on-delete-cascade-in-sqlite3","tabId":102,"extraData":{"redirectHistory":["http://stackoverflow.com/q/5890250"]}};for(var i in eventData){args.push(eventData[i])};if (typeof(EBDocumentComplete)==="function") {EBDocumentComplete.apply(this, args); }</script><script type="text/javascript">var args = [];var eventData = {"url":"http://stackoverflow.com/questions/12655347/django-cascade-delete-on-reverse-foreign-keys","tabId":0};for(var i in eventData){args.push(eventData[i])};if (typeof(EBTabChange)==="function") {EBTabChange.apply(this, args); }</script><script type="text/javascript">var args = [];var eventData = {"url":"http://stackoverflow.com/questions/12655347/django-cascade-delete-on-reverse-foreign-keys","tabId":0};for(var i in eventData){args.push(eventData[i])};if (typeof(EBTabChange)==="function") {EBTabChange.apply(this, args); }</script><script type="text/javascript">var args = [];var eventData = {"url":"http://stackoverflow.com/questions/5890250/on-delete-cascade-in-sqlite3","tabId":0};for(var i in eventData){args.push(eventData[i])};if (typeof(EBTabChange)==="function") {EBTabChange.apply(this, args); }</script><script type="text/javascript">var args = [];var eventData = {"url":"http://stackoverflow.com/questions/5890250/on-delete-cascade-in-sqlite3","tabId":0};for(var i in eventData){args.push(eventData[i])};if (typeof(EBTabChange)==="function") {EBTabChange.apply(this, args); }</script><script type="text/javascript">var args = [];var eventData = {"url":"http://stackoverflow.com/questions/5890250/on-delete-cascade-in-sqlite3","tabId":0};for(var i in eventData){args.push(eventData[i])};if (typeof(EBTabChange)==="function") {EBTabChange.apply(this, args); }</script></body><script>if (typeof EBGlobalKeyChanged === 'function') {var EBGlobalKeyChangedWrapper = function(myKey, myValue) {EBGlobalKeyChanged(unescape(myKey), unescape(myValue))}; EBGlobalKeyChangedWrapper('impression_session_last_active', '1382473046143');}</script><script>if (typeof EBGlobalKeyChanged === 'function') {var EBGlobalKeyChangedWrapper = function(myKey, myValue) {EBGlobalKeyChanged(unescape(myKey), unescape(myValue))}; EBGlobalKeyChangedWrapper('url_history0001', 'https%3A//www.google.co.in/url%3Fsa%3Dt%26rct%3Dj%26q%3D%26esrc%3Ds%26source%3Dweb%26cd%3D7%26ved%3D0CFcQFjAG%26url%3Dhttp%253A%252F%252Fstackoverflow.com%252Fquestions%252F12655347%252Fdjango-cascade-delete-on-reverse-foreign-keys%26ei%3D3tdmUq79McOXrAes8YGQDA%26usg%3DAFQjCNH_ewUGsT8Q8OQ46Vfp5lP6U7DuuQ%3A%3A%3Aclickhandler%3A%3A%3A1382472413458%2C%2C%2Chttps%3A//www.google.co.in/url%3Fsa%3Dt%26rct%3Dj%26q%3D%26esrc%3Ds%26source%3Dweb%26cd%3D7%26ved%3D0CFcQFjAG%26url%3Dhttp%253A%252F%252Fstackoverflow.com%252Fquestions%252F12655347%252Fdjango-cascade-delete-on-reverse-foreign-keys%26ei%3D3tdmUq79McOXrAes8YGQDA%26usg%3DAFQjCNH_ewUGsT8Q8OQ46Vfp5lP6U7DuuQ%3A%3A%3Aclickhandler%3A%3A%3A1382472413486%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472442325%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472444141%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472449856%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472450616%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472452717%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472452808%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472913522%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472913661%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472916159%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472916319%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472916498%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472995851%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472996034%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473314296');}</script><script>if (typeof EBGlobalKeyChanged === 'function') {var EBGlobalKeyChangedWrapper = function(myKey, myValue) {EBGlobalKeyChanged(unescape(myKey), unescape(myValue))}; EBGlobalKeyChangedWrapper('url_history0001', 'https%3A//www.google.co.in/url%3Fsa%3Dt%26rct%3Dj%26q%3D%26esrc%3Ds%26source%3Dweb%26cd%3D7%26ved%3D0CFcQFjAG%26url%3Dhttp%253A%252F%252Fstackoverflow.com%252Fquestions%252F12655347%252Fdjango-cascade-delete-on-reverse-foreign-keys%26ei%3D3tdmUq79McOXrAes8YGQDA%26usg%3DAFQjCNH_ewUGsT8Q8OQ46Vfp5lP6U7DuuQ%3A%3A%3Aclickhandler%3A%3A%3A1382472413486%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472442325%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472444141%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472449856%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472450616%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472452717%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472452808%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472913522%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472913661%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472916159%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472916319%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472916498%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472995851%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472996034%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473314296%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473315061');}</script><script>if (typeof EBGlobalKeyChanged === 'function') {var EBGlobalKeyChangedWrapper = function(myKey, myValue) {EBGlobalKeyChanged(unescape(myKey), unescape(myValue))}; EBGlobalKeyChangedWrapper('url_history0001', 'https%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472442325%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472444141%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472449856%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472450616%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472452717%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472452808%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472913522%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472913661%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472916159%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472916319%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472916498%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472995851%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472996034%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473314296%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473315061%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473318641');}</script><script>if (typeof EBGlobalKeyChanged === 'function') {var EBGlobalKeyChangedWrapper = function(myKey, myValue) {EBGlobalKeyChanged(unescape(myKey), unescape(myValue))}; EBGlobalKeyChangedWrapper('url_history0001', 'https%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472444141%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472449856%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472450616%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472452717%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472452808%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472913522%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472913661%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472916159%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472916319%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472916498%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472995851%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472996034%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473314296%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473315061%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473318641%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473318808');}</script><script>if (typeof EBGlobalKeyChanged === 'function') {var EBGlobalKeyChangedWrapper = function(myKey, myValue) {EBGlobalKeyChanged(unescape(myKey), unescape(myValue))}; EBGlobalKeyChangedWrapper('url_history0001', 'https%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472449856%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472450616%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472452717%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472452808%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472913522%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472913661%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472916159%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472916319%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472916498%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472995851%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472996034%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473314296%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473315061%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473318641%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473318808%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473324827');}</script><script>if (typeof EBGlobalKeyChanged === 'function') {var EBGlobalKeyChangedWrapper = function(myKey, myValue) {EBGlobalKeyChanged(unescape(myKey), unescape(myValue))}; EBGlobalKeyChangedWrapper('url_history0001', 'https%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472450616%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472452717%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472452808%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472913522%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472913661%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472916159%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472916319%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472916498%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472995851%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472996034%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473314296%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473315061%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473318641%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473318808%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473324827%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473325385');}</script><script>if (typeof EBGlobalKeyChanged === 'function') {var EBGlobalKeyChangedWrapper = function(myKey, myValue) {EBGlobalKeyChanged(unescape(myKey), unescape(myValue))}; EBGlobalKeyChangedWrapper('url_history0001', 'https%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472452717%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472452808%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472913522%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472913661%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472916159%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472916319%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472916498%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472995851%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472996034%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473314296%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473315061%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473318641%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473318808%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473324827%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473325385%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382475972823');}</script><script>if (typeof EBGlobalKeyChanged === 'function') {var EBGlobalKeyChangedWrapper = function(myKey, myValue) {EBGlobalKeyChanged(unescape(myKey), unescape(myValue))}; EBGlobalKeyChangedWrapper('url_history0001', 'https%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472452808%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472913522%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472913661%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472916159%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472916319%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472916498%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472995851%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472996034%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473314296%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473315061%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473318641%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473318808%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473324827%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473325385%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382475972823%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382475974995');}</script><script>if (typeof EBGlobalKeyChanged === 'function') {var EBGlobalKeyChangedWrapper = function(myKey, myValue) {EBGlobalKeyChanged(unescape(myKey), unescape(myValue))}; EBGlobalKeyChangedWrapper('url_history0001', 'https%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472913522%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472913661%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472916159%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472916319%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472916498%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472995851%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472996034%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473314296%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473315061%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473318641%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473318808%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473324827%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473325385%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382475972823%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382475974995%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382475975266');}</script><script>if (typeof EBGlobalKeyChanged === 'function') {var EBGlobalKeyChangedWrapper = function(myKey, myValue) {EBGlobalKeyChanged(unescape(myKey), unescape(myValue))}; EBGlobalKeyChangedWrapper('url_history0001', 'https%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472913661%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472916159%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472916319%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472916498%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472995851%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472996034%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473314296%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473315061%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473318641%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473318808%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473324827%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473325385%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382475972823%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382475974995%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382475975266%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382475975578');}</script><script>if (typeof EBGlobalKeyChanged === 'function') {var EBGlobalKeyChangedWrapper = function(myKey, myValue) {EBGlobalKeyChanged(unescape(myKey), unescape(myValue))}; EBGlobalKeyChangedWrapper('url_history0001', 'https%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472916159%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472916319%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472916498%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472995851%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472996034%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473314296%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473315061%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473318641%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473318808%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473324827%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473325385%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382475972823%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382475974995%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382475975266%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382475975578%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382475977510');}</script><script>if (typeof EBGlobalKeyChanged === 'function') {var EBGlobalKeyChangedWrapper = function(myKey, myValue) {EBGlobalKeyChanged(unescape(myKey), unescape(myValue))}; EBGlobalKeyChangedWrapper('url_history0001', 'https%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472916319%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472916498%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472995851%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472996034%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473314296%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473315061%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473318641%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473318808%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473324827%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473325385%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382475972823%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382475974995%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382475975266%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382475975578%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382475977510%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382475978873');}</script><script>if (typeof EBGlobalKeyChanged === 'function') {var EBGlobalKeyChangedWrapper = function(myKey, myValue) {EBGlobalKeyChanged(unescape(myKey), unescape(myValue))}; EBGlobalKeyChangedWrapper('url_history0001', 'https%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472916498%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472995851%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472996034%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473314296%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473315061%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473318641%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473318808%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473324827%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473325385%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382475972823%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382475974995%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382475975266%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382475975578%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382475977510%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382475978873%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382475979050');}</script><script>if (typeof EBGlobalKeyChanged === 'function') {var EBGlobalKeyChangedWrapper = function(myKey, myValue) {EBGlobalKeyChanged(unescape(myKey), unescape(myValue))}; EBGlobalKeyChangedWrapper('url_history0001', 'https%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472995851%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472996034%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473314296%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473315061%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473318641%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473318808%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473324827%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473325385%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382475972823%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382475974995%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382475975266%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382475975578%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382475977510%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382475978873%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382475979050%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382475986158');}</script><script>if (typeof EBGlobalKeyChanged === 'function') {var EBGlobalKeyChangedWrapper = function(myKey, myValue) {EBGlobalKeyChanged(unescape(myKey), unescape(myValue))}; EBGlobalKeyChangedWrapper('url_history0001', 'https%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382472996034%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473314296%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473315061%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473318641%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473318808%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473324827%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473325385%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382475972823%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382475974995%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382475975266%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382475975578%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382475977510%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382475978873%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382475979050%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382475986158%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382475992935');}</script><script>if (typeof EBGlobalKeyChanged === 'function') {var EBGlobalKeyChangedWrapper = function(myKey, myValue) {EBGlobalKeyChanged(unescape(myKey), unescape(myValue))}; EBGlobalKeyChangedWrapper('url_history0001', 'https%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473314296%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473315061%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473318641%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473318808%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473324827%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382473325385%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382475972823%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382475974995%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382475975266%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382475975578%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382475977510%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382475978873%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382475979050%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382475986158%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382475992935%2C%2C%2Chttps%3A//www.google.com%3A%3A%3Aclickhandler%3A%3A%3A1382475996679');}</script></html>
