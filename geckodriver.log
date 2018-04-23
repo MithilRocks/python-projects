@@ -1,0 +1,28 @@
+1524472887431	geckodriver	INFO	geckodriver 0.20.1
+1524472887441	geckodriver	INFO	Listening on 127.0.0.1:45103
+1524472887532	mozrunner::runner	INFO	Running command: "/usr/bin/firefox" "-marionette" "-profile" "/tmp/rust_mozprofile.MeHrZTzNLoym"
+1524472899018	Marionette	INFO	Listening on port 2828
+1524472919317	geckodriver	INFO	geckodriver 0.20.1
+1524472919327	geckodriver	INFO	Listening on 127.0.0.1:37803
+1524472919444	mozrunner::runner	INFO	Running command: "/usr/bin/firefox" "-marionette" "-profile" "/tmp/rust_mozprofile.NWenS2wl6q2C"
+1524472922974	Marionette	INFO	Listening on port 2828
+1524473060657	geckodriver	INFO	geckodriver 0.20.1
+1524473060681	geckodriver	INFO	Listening on 127.0.0.1:47035
+1524473060705	mozrunner::runner	INFO	Running command: "/usr/bin/firefox" "-marionette" "-profile" "/tmp/rust_mozprofile.W3XvoFf8HAgr"
+1524473064125	Marionette	INFO	Listening on port 2828
+1524475554655	geckodriver	INFO	geckodriver 0.20.1
+1524475554711	geckodriver	INFO	Listening on 127.0.0.1:43783
+1524475556652	mozrunner::runner	INFO	Running command: "/usr/bin/firefox" "-marionette" "-profile" "/tmp/rust_mozprofile.3OETQu9h2BOh"
+1524475566759	Marionette	INFO	Listening on port 2828
+1524475588258	geckodriver	INFO	geckodriver 0.20.1
+1524475588267	geckodriver	INFO	Listening on 127.0.0.1:52719
+1524475588420	mozrunner::runner	INFO	Running command: "/usr/bin/firefox" "-marionette" "-profile" "/tmp/rust_mozprofile.zRrBN9Mxo86Z"
+1524475592142	Marionette	INFO	Listening on port 2828
+1524475645705	geckodriver	INFO	geckodriver 0.20.1
+1524475645712	geckodriver	INFO	Listening on 127.0.0.1:57143
+1524475647736	mozrunner::runner	INFO	Running command: "/usr/bin/firefox" "-marionette" "-profile" "/tmp/rust_mozprofile.GllDZUBSgKtj"
+1524475650226	Marionette	INFO	Listening on port 2828
+1524475819193	geckodriver	INFO	geckodriver 0.20.1
+1524475819208	geckodriver	INFO	Listening on 127.0.0.1:48617
+1524475821208	mozrunner::runner	INFO	Running command: "/usr/bin/firefox" "-marionette" "-profile" "/tmp/rust_mozprofile.rQLbnyenjF09"
+1524475823985	Marionette	INFO	Listening on port 2828
