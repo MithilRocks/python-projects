@@ -7,7 +7,8 @@ def sort_example():
     print(a.bubble_sort())
 
 def class_inheritence_example():
-    b = Quick_sort([4,3,2,6,5,90])
+    b = Quick_sort([2,9,1,45,23,12,89,34,9,99,1000,978,99,67,23,45])
     print(b.quick_sort())
+
 
 class_inheritence_example()
