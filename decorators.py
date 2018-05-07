@@ -14,3 +14,5 @@ def time_taken(func):
         return ret
     # return the time difference return
     return ret_func
+
+print(__name__)

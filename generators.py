@@ -1,9 +1,10 @@
-from time import sleep
+from decorators import time_taken
 
-def Compute():
-    for i in range(10):
-        yield i
-        sleep(0.5)
+@time_taken
+def firstn(n1,n2):
+    num = n1
+    while num < n2:
+        yield num
+        num += 1
 
-for val in Compute():
-    print(val)
+print(sum(firstn(100,1000)))
