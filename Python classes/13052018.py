@@ -15,19 +15,12 @@ print(c.upper()) # convert to uppercase
 '''
 Assignment: write your own center method that'll append two different characters at start and end
 '''
-""" input_string = input("Enter string to center: ")
-first_string = input("Enter first string to pad at beginning: ")
-last_string = input("Enter first string to pad at ending: ")
-length_string = int(input("Enter length of centered string: "))
+def myCenter(input_string, first_string, last_string, length_string):
+    new_text = str(input_string.center(length_string, last_string))
+    temp = new_text.find(input_string)
+    print(new_text.replace(last_string, first_string, temp))
 
-if len(input_string) < length_string:
-    difference = length_string - len(input_string)
-
-    if difference % 2 == 0:
-        equal_input = difference/2
-        input_string = equal_input*first_string + input_string + equal_input*last_string
-
-print(input_string) """
+myCenter("mithil","a","b",20)
 '''
 Assignment end
 '''
@@ -64,17 +57,17 @@ Assignment end
 '''
 Write a program to accept a string from user and swap the cases
 '''
-""" swap_case_string = input("Enter String whose cases you wanna swap: ")
-print(swap_case_string.swapcase()) """
+swap_case_string = input("Enter String whose cases you wanna swap: ")
+print(swap_case_string.swapcase())
 
 
 '''
 Write a program to accept an input string and ends with string. check if first string ends with second string.
 '''
-""" your_string = input("Input your string: ")
+your_string = input("Input your string: ")
 end_string = input("Input String to check whether it is at the end of previous string: ")
 if your_string.endswith(end_string) == 1:
-    print("%s is at the end of %s" %(end_string, your_string)) """
+    print("%s is at the end of %s" %(end_string, your_string))
 
 
 '''
@@ -104,7 +97,9 @@ print("Vowel Count is: %d" %(vowel_count))
 '''
 write a program to accept a string from user and display all digits from it
 '''
-
+for x in user_string:
+    if x.isdecimal():
+        print(x)
 
 
 '''
